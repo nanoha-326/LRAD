@@ -9,6 +9,7 @@ import datetime
 from PIL import Image
 import re
 import unicodedata
+from sentence_transformers import SentenceTransformer
 
 # --- Streamlitの設定 ---
 st.set_page_config(page_title="LRADサポートチャット", page_icon="\U0001F4D8", layout="centered")
@@ -16,8 +17,8 @@ st.set_page_config(page_title="LRADサポートチャット", page_icon="\U0001F
 # --- 初期設定 ---
 # Streamlit Community Cloudの「Secrets」からOpenAI API keyを取得★
 openai.api_key = st.secrets.OpenAIAPI.openai_api_key
-
-model = SentenceTransformer('all-MiniLM-L6-v2')
+# モデルをCPUでロードする
+model = SentenceTransformer('all-MiniLM-L6-v2', device='cpu')
 
 system_prompt ="""
 あなたはLRAD専用のチャットボットです。
