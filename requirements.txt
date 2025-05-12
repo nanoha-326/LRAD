@@ -3,4 +3,5 @@ pandas==2.2.2
 openai==0.27.0
 sentence-transformers==2.2.0
 torch==2.2.0
-huggingface_hub==0.15.1  # 追加
+huggingface_hub==0.15.1
+tokenizers==0.13.3
