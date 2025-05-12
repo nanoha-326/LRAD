@@ -6,7 +6,6 @@ import openai
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 import datetime
-import secret_keys
 from PIL import Image
 import re
 import unicodedata
