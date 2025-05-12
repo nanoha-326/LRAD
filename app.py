@@ -67,7 +67,7 @@ def find_similar_question(user_input, faq_df):
 # --- OpenAI補完 ---
 def generate_response(context_question, context_answer, user_input):
     prompt = f"以下はFAQに基づいたチャットボットの会話です。\n\n質問: {context_question}\n回答: {context_answer}\n\nユーザーの質問: {user_input}\n\nこれを参考に、丁寧でわかりやすく自然な回答をしてください。"
-    response = openai.ChatCompletion.create(
+    response = openai.client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
             {"role": "system", "content": system_prompt},
