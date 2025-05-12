@@ -1,4 +1,5 @@
 streamlit==1.30.0
 pandas==2.2.2
 openai
-sentence-transformers
+sentence-transformers==2.2.0
+torch==1.13.1
