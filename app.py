@@ -1,20 +1,20 @@
 import streamlit as st
 import pandas as pd
-import openai
 import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
 import datetime
 import re
 import unicodedata
+from sklearn.metrics.pairwise import cosine_similarity
+from openai import OpenAI  # 新バージョン用
 
 # --- Streamlitの設定 ---
 st.set_page_config(page_title="LRADサポートチャット", page_icon="📘", layout="centered")
 
-# --- OpenAI APIキー ---
-openai.api_key = st.secrets.OpenAIAPI.openai_api_key
+# --- OpenAIクライアントの初期化 ---
+client = OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
 
 # --- システムプロンプト ---
-system_prompt ="""
+system_prompt = """
 あなたはLRAD専用のチャットボットです。
 「LRAD（エルラド）」とは熱分解装置（遠赤外線電子熱分解装置）のことで、これは有機廃棄物の処理装置です。
 あなたの役割は、この装置の検証をサポートすることです。
@@ -67,7 +67,7 @@ def find_similar_question(user_input, faq_df):
 # --- GPT応答生成 ---
 def generate_response(context_q, context_a, user_input):
     prompt = f"以下はFAQに基づいたチャットボットの会話です。\n\n質問: {context_q}\n回答: {context_a}\n\nユーザーの質問: {user_input}\n\nこれを参考に、丁寧でわかりやすく自然な回答をしてください。"
-    response = openai.chat.completions.create(
+    response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
             {"role": "system", "content": system_prompt},
