@@ -1,6 +1,3 @@
-%%writefile app.py
-# FAQチャットボット with GPT補完・OpenAI埋め込み・ログ保存
-
 import streamlit as st
 import pandas as pd
 import openai
