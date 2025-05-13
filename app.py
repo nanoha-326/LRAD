@@ -41,7 +41,7 @@ def is_valid_input(text: str) -> bool:
 
 # --- 埋め込み生成 ---
 def get_embedding(text):
-    response = openai.Embeddings.create(
+    response = openai.Embedding.create(
         input=[text],
         model="text-embedding-ada-002"
     )
@@ -58,7 +58,7 @@ faq_df = load_faq("faq.csv")
 
 # --- 類似質問検索 ---
 def find_similar_question(user_input, faq_df):
-    user_vec = get_Embedding(user_input)
+    user_vec = get_embedding(user_input)
     faq_vecs = np.stack(faq_df['embedding'].values)
     scores = cosine_similarity([user_vec], faq_vecs)[0]
     top_idx = scores.argmax()
