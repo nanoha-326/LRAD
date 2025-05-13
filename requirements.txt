@@ -1,7 +1,7 @@
 streamlit==1.30.0
 pandas==2.2.2
-openai==0.27.0
-sentence-transformers==2.2.0
+openai==1.11.1
+sentence-transformers==2.2.2
 torch==2.2.0
 huggingface_hub==0.15.1
 tokenizers==0.13.3
