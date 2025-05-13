@@ -40,7 +40,7 @@ def is_valid_input(text: str) -> bool:
     return True
 
 # --- 埋め込み生成 ---
-def get_embedding(text):
+def get_Embedding(text):
     response = openai.embeddings.create(
         input=[text],
         model="text-embedding-ada-002"
