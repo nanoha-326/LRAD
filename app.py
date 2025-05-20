@@ -142,6 +142,13 @@ st.markdown(
         color: {font_color} !important;
         font-family: '{font_option}', sans-serif !important;
     }}
+    h1 {{
+        color: {title_color} !important;
+    }}
+    .stCaption {{
+        color: {caption_color} !important;
+        font-size: 14px;
+    }}
     </style>
     """,
     unsafe_allow_html=True
