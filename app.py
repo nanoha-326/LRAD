@@ -108,7 +108,7 @@ with st.sidebar:
     # 背景色
     background_color = st.color_picker("背景色", "#FFFFFF")
 
-# --- 選択されたサイズに応じたCSSを反映 ---
+# --- サイズマッピング ---
 size_map = {
     "小": 14,
     "中": 18,
@@ -116,16 +116,26 @@ size_map = {
 }
 font_px = size_map[size_option]
 
+# --- CSSを挿入 ---
 st.markdown(
     f"""
     <style>
+    /* 背景の変更 */
+    .stApp {{
+        background-color: {background_color};
+    }}
+
+    /* チャットメッセージのフォント、色、サイズ */
     div.stChatMessage p {{
         font-size: {font_px}px !important;
+        color: {font_color} !important;
+        font-family: '{font_option}', sans-serif !important;
     }}
     </style>
     """,
     unsafe_allow_html=True
 )
+
 
 # ログ保存ボタン
 if st.button("チャットログを保存"):
