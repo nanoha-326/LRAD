@@ -104,9 +104,9 @@ with st.sidebar:
 
 # --- 選択されたサイズに応じたCSSを反映 ---
 size_map = {
-    "小": 14,
-    "中": 18,
-    "大": 24
+    "小": 18,
+    "中": 22,
+    "大": 30
 }
 font_px = size_map[size_option]
 
