@@ -105,16 +105,19 @@ with st.sidebar:
     # --- テーマごとの設定 ---
     if theme == "ライト":
         background_color = "#FFFFFF"
+        title_color = "#003366"
         font_color = "#000000"
         font_option = "Meiryo"
         font_px = 18
     elif theme == "ダーク":
         background_color = "#000000"
+        title_color = "#00CCFF"
         font_color = "#FFFFFF"
         font_option = "Noto Sans JP"
         font_px = 18
     elif theme == "ポップ":
         background_color = "#E0F7F4"
+        title_color = "#FF3399"
         font_color = "#003366"
         font_option = "Comic Sans MS"
         font_px = 24
