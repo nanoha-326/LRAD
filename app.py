@@ -81,8 +81,9 @@ def generate_response(context_q, context_a, user_input):
 def save_log(log_data):
     now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"chatlog_{now}.csv"
-    pd.DataFrame(log_data, columns=["ユーザーの質問", "チャットボットの回答"]).to_csv(filename, index=False)
+    pd.DataFrame(log_data, columns=["ユーザーの質問", "チャットボットの回答"]).to_csv(filename, index=False, encoding='utf-8-sig')
     return filename
+
 
 # --- UI ---
 st.title("LRADサポートチャット")
