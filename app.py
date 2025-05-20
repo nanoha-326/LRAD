@@ -25,6 +25,14 @@ system_prompt = """
 ・FAQにない場合は「わかりません」と丁寧に答えてください。
 """
 
+# 過去質問のサジェスト表示（最新5件まで）
+if st.session_state.input_history:
+    st.markdown("### 過去の質問（クリックすると入力欄にセット）")
+    cols = st.columns(len(st.session_state.input_history[-5:]))
+    for i, q in enumerate(st.session_state.input_history[-5:]):
+        if cols[i].button(q):
+            st.session_state.user_input = q  # 入力欄にセット
+            
 # --- 入力バリデーション ---
 def is_valid_input(text: str) -> bool:
     text = text.strip()
@@ -111,6 +119,15 @@ with st.form(key="chat_form", clear_on_submit=True):
         answer = generate_response(similar_q, similar_a, user_input)
         st.session_state.chat_log.insert(0, (user_input, answer))
         st.experimental_rerun()
+
+    if submitted and user_input:
+        # ここに既存のバリデーションや回答生成処理を入れる
+        # 例: 入力履歴に追加
+        if user_input not in st.session_state.input_history:
+            st.session_state.input_history.append(user_input)
+
+        # 例として表示のみ
+        st.write(f"あなたの質問: {user_input}")
 
 # チャット履歴表示
 for user_msg, bot_msg in st.session_state.chat_log:
