@@ -112,6 +112,10 @@ with st.form(key="chat_form", clear_on_submit=True):
         st.session_state.chat_log.insert(0, (user_input, answer))
         st.experimental_rerun()
 
+with st.spinner("回答生成中…お待ちください。"):
+    answer = generate_response(similar_q, similar_a, user_input)
+
+
 # チャット履歴表示
 for user_msg, bot_msg in st.session_state.chat_log:
     with st.chat_message("user"):
