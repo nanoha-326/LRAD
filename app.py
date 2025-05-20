@@ -92,47 +92,34 @@ st.caption("※このチャットボットはFAQとAIをもとに応答します
 if 'chat_log' not in st.session_state:
     st.session_state.chat_log = []
 
-# --- サイドバーで文字サイズ選択 ---
+# --- サイドバーに設定項目を追加 ---
 with st.sidebar:
-    st.header("⚙️ 表示設定")
-    font_size = st.selectbox("文字サイズを選んでください", ["小", "中", "大"], index=1)
+    st.header("⚙️ 設定変更")
+    size_option = st.radio(
+        "文字サイズを選択",
+        ["小", "中", "大"],
+        index=1,  # デフォルトは「中」
+        horizontal=False
+    )
 
-# --- サイズ対応マップ ---
+# --- 選択されたサイズに応じたCSSを反映 ---
 size_map = {
-    "小": {"title": "24px", "caption": "12px", "body": "14px"},
-    "中": {"title": "32px", "caption": "14px", "body": "16px"},
-    "大": {"title": "40px", "caption": "16px", "body": "18px"}
+    "小": 14,
+    "中": 18,
+    "大": 24
 }
-selected = size_map[font_size]
+font_px = size_map[size_option]
 
-# --- CSS を適用 ---
-font_size_title = "36px"
-font_size_caption = "16px"
-font_size_body = "18px"
-
-st.markdown(f"""
-<style>
-/* タイトル（h1） */
-h1 {{
-    font-size: {font_size_title} !important;
-}}
-
-/* キャプションに使われるpタグの中のsmall要素 */
-p > small {{
-    font-size: {font_size_caption} !important;
-}}
-
-/* 通常テキストやチャットテキスト */
-div.stText, div[data-testid="stMarkdownContainer"] > div p {{
-    font-size: {font_size_body} !important;
-}}
-
-/* チャットメッセージ */
-div.stChatMessage p {{
-    font-size: {font_size_body} !important;
-}}
-</style>
-""", unsafe_allow_html=True)
+st.markdown(
+    f"""
+    <style>
+    div.stChatMessage p {{
+        font-size: {font_px}px !important;
+    }}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 # ログ保存ボタン
 if st.button("チャットログを保存"):
