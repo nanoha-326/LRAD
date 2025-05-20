@@ -99,29 +99,6 @@ with st.sidebar:
     # 文字サイズ
     size_option = st.radio("文字サイズ", ["小", "中", "大"], index=1)
 
-    #テーマ
-    theme = st.selectbox("テーマを選択", ["ライト", "ダーク", "ポップ"], index=0)
-    
-    # --- テーマごとの設定 ---
-    if theme == "ライト":
-        background_color = "#FFFFFF"
-        title_color = "#003366"
-        font_color = "#000000"
-        font_option = "Meiryo"
-        font_px = 18
-    elif theme == "ダーク":
-        background_color = "#000000"
-        title_color = "#00CCFF"
-        font_color = "#FFFFFF"
-        font_option = "Noto Sans JP"
-        font_px = 18
-    elif theme == "ポップ":
-        background_color = "#E0F7F4"
-        title_color = "#FF3399"
-        font_color = "#003366"
-        font_option = "Comic Sans MS"
-        font_px = 24
-
 # --- サイズマッピング ---
 size_map = {
     "小": 14,
@@ -129,30 +106,6 @@ size_map = {
     "大": 24
 }
 font_px = size_map[size_option]
-
-# --- CSSを挿入 ---
-st.markdown(
-    f"""
-    <style>
-     .stApp {{
-        background-color: {background_color};
-    }}
-    div.stChatMessage p {{
-        font-size: {font_px}px !important;
-        color: {font_color} !important;
-        font-family: '{font_option}', sans-serif !important;
-    }}
-    h1 {{
-        color: {title_color} !important;
-    }}
-    .stCaption {{
-        color: {caption_color} !important;
-        font-size: 14px;
-    }}
-    </style>
-    """,
-    unsafe_allow_html=True
-)
 
 
 # ログ保存ボタン
