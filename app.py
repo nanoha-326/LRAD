@@ -99,14 +99,25 @@ with st.sidebar:
     # 文字サイズ
     size_option = st.radio("文字サイズ", ["小", "中", "大"], index=1)
 
-    # 文字色
-    font_color = st.color_picker("文字色", "#000000")
-
-    # フォント
-    font_option = st.selectbox("フォント", ["Arial", "Helvetica", "Meiryo", "Courier New", "Noto Sans JP"])
-
-    # 背景色
-    background_color = st.color_picker("背景色", "#FFFFFF")
+    #テーマ
+    theme = st.selectbox("テーマを選択", ["ライト", "ダーク", "ポップ"], index=0)
+    
+    # --- テーマごとの設定 ---
+    if theme == "ライト":
+        background_color = "#FFFFFF"
+        font_color = "#000000"
+        font_option = "Meiryo"
+        font_px = 18
+    elif theme == "ダーク":
+        background_color = "#000000"
+        font_color = "#FFFFFF"
+        font_option = "Noto Sans JP"
+        font_px = 18
+    elif theme == "ポップ":
+        background_color = "#E0F7F4"
+        font_color = "#003366"
+        font_option = "Comic Sans MS"
+        font_px = 24
 
 # --- サイズマッピング ---
 size_map = {
@@ -120,12 +131,9 @@ font_px = size_map[size_option]
 st.markdown(
     f"""
     <style>
-    /* 背景の変更 */
-    .stApp {{
+     .stApp {{
         background-color: {background_color};
     }}
-
-    /* チャットメッセージのフォント、色、サイズ */
     div.stChatMessage p {{
         font-size: {font_px}px !important;
         color: {font_color} !important;
