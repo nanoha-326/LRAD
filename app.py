@@ -109,7 +109,7 @@ with st.form(key="chat_form", clear_on_submit=True):
             st.experimental_rerun()
         similar_q, similar_a = find_similar_question(user_input, faq_df)
         answer = generate_response(similar_q, similar_a, user_input)
-        st.session_state.chat_log.append((user_input, answer))
+        st.session_state.chat_log.insert(0, (user_input, answer))
         st.experimental_rerun()
 
 # チャット履歴表示
@@ -118,3 +118,4 @@ for user_msg, bot_msg in st.session_state.chat_log:
         st.markdown(user_msg)
     with st.chat_message("assistant"):
         st.markdown(bot_msg)
+    st.divider()
