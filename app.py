@@ -92,23 +92,32 @@ st.caption("※このチャットボットはFAQとAIをもとに応答します
 if 'chat_log' not in st.session_state:
     st.session_state.chat_log = []
 
-# ユーザーに文字サイズを選ばせる
-font_size_option = st.selectbox("文字サイズを選んでください", ["小", "中", "大"])
+with st.expander("⚙️ 設定変更", expanded=False):
+    size_option = st.radio(
+        "文字サイズを選択",
+        ["小", "中", "大"],
+        horizontal=True
+    )
 
-# サイズに応じたCSSを定義
-font_size_map = {
-    "小": "14px",
-    "中": "18px",
-    "大": "22px"
+# 選択に応じたサイズ変換
+size_map = {
+    "小": 14,
+    "中": 18,
+    "大": 24
 }
-font_css = f"""
-<style>
-div.stChatMessage p {{
-    font-size: {font_size_map[font_size_option]} !important;
-}}
-</style>
-"""
-st.markdown(font_css, unsafe_allow_html=True)
+font_px = size_map[size_option]
+
+# CSSを反映（チャットメッセージのフォントサイズ）
+st.markdown(
+    f"""
+    <style>
+    div.stChatMessage p {{
+        font-size: {font_px}px !important;
+    }}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 
 # ログ保存ボタン
