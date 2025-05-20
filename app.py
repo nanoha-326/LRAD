@@ -103,14 +103,17 @@ with st.form(key="chat_form", clear_on_submit=True):
     user_input = st.text_input("質問をどうぞ：", key="user_input")
     submitted = st.form_submit_button("送信")
 
-    if submitted and user_input:
-        if not is_valid_input(user_input):
-            st.session_state.chat_log.insert(0, (user_input, "エラー：入力が不正です。"))
-            st.experimental_rerun()
+if submitted and user_input:
+    if not is_valid_input(user_input):
+        st.session_state.chat_log.insert(0, (user_input, "エラー：入力が不正です。"))
+        st.experimental_rerun()
+
+    with st.spinner("回答生成中…お待ちください。"):
         similar_q, similar_a = find_similar_question(user_input, faq_df)
         answer = generate_response(similar_q, similar_a, user_input)
-        st.session_state.chat_log.insert(0, (user_input, answer))
-        st.experimental_rerun()
+
+    st.session_state.chat_log.insert(0, (user_input, answer))
+    st.experimental_rerun()
 
 # チャット履歴表示
 for user_msg, bot_msg in st.session_state.chat_log:
