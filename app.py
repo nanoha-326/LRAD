@@ -92,27 +92,35 @@ st.caption("※このチャットボットはFAQとAIをもとに応答します
 if 'chat_log' not in st.session_state:
     st.session_state.chat_log = []
 
-# --- サイドバーに設定項目を追加 ---
+# --- サイドバーで文字サイズ選択 ---
 with st.sidebar:
-    st.header("⚙️ 設定変更")
+    st.header("⚙️ 表示設定")
+    font_size = st.selectbox("文字サイズを選んでください", ["小", "中", "大"], index=1)
 
-    # 文字サイズ
-    size_option = st.radio("文字サイズ", ["小", "中", "大"], index=1)
+# --- フォントサイズに応じたスタイル設定 ---
+if font_size == "小":
+    font_css = "14px"
+elif font_size == "中":
+    font_css = "18px"
+elif font_size == "大":
+    font_css = "22px"
 
-# サイズに応じたCSSを定義
-font_size_map = {
-    "小": "14px",
-    "中": "18px",
-    "大": "22px"
-}
-font_css = f"""
-<style>
-div.stChatMessage p {{
-    font-size: {font_size_map[font_size_option]} !important;
-}}
-</style>
-"""
-st.markdown(font_css, unsafe_allow_html=True)
+# --- CSS を埋め込み ---
+st.markdown(
+    f"""
+    <style>
+    .stApp {{
+        font-size: {font_css};
+    }}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# --- 本文（例） ---
+st.title("LRADサポートチャット")
+st.caption("※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。")
+
 
 
 # ログ保存ボタン
