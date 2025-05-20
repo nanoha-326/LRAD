@@ -99,13 +99,20 @@ with st.sidebar:
     # 文字サイズ
     size_option = st.radio("文字サイズ", ["小", "中", "大"], index=1)
 
-# --- サイズマッピング ---
-size_map = {
-    "小": 14,
-    "中": 18,
-    "大": 24
+# サイズに応じたCSSを定義
+font_size_map = {
+    "小": "14px",
+    "中": "18px",
+    "大": "22px"
 }
-font_px = size_map[size_option]
+font_css = f"""
+<style>
+div.stChatMessage p {{
+    font-size: {font_size_map[font_size_option]} !important;
+}}
+</style>
+"""
+st.markdown(font_css, unsafe_allow_html=True)
 
 
 # ログ保存ボタン
