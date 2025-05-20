@@ -97,20 +97,29 @@ with st.sidebar:
     st.header("⚙️ 表示設定")
     font_size = st.selectbox("文字サイズを選んでください", ["小", "中", "大"], index=1)
 
-# --- フォントサイズに応じたスタイル設定 ---
-if font_size == "小":
-    font_css = "14px"
-elif font_size == "中":
-    font_css = "18px"
-elif font_size == "大":
-    font_css = "22px"
+# --- サイズ対応マップ ---
+size_map = {
+    "小": {"title": "24px", "caption": "12px", "body": "14px"},
+    "中": {"title": "32px", "caption": "14px", "body": "16px"},
+    "大": {"title": "40px", "caption": "16px", "body": "18px"}
+}
+selected = size_map[font_size]
 
-# --- CSS を埋め込み ---
+# --- CSS を適用 ---
 st.markdown(
     f"""
     <style>
+    /* 全体のフォントサイズ */
     .stApp {{
-        font-size: {font_css};
+        font-size: {selected['body']} !important;
+    }}
+    /* タイトルのサイズ */
+    h1 {{
+        font-size: {selected['title']} !important;
+    }}
+    /* キャプションのサイズ（streamlit の caption 対象） */
+    .st-emotion-cache-1v0mbdj {{
+        font-size: {selected['caption']} !important;
     }}
     </style>
     """,
