@@ -100,7 +100,7 @@ if st.button("チャットログを保存"):
 
 # 入力フォーム
 with st.form(key="chat_form", clear_on_submit=True):
-    user_input = st.text_input("質問をどうぞ：", key="user_input")
+    user_input = st.text_area("質問をどうぞ：", height=100)
     submitted = st.form_submit_button("送信")
 
 if submitted and user_input:
