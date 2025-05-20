@@ -100,7 +100,7 @@ if st.button("チャットログを保存"):
 
 # 入力フォーム
 with st.form(key="chat_form", clear_on_submit=True):
-    user_input = st.text_input("質問をどうぞ：", key="user_input")
+    user_input = st.text_area("質問をどうぞ：", height=100)
     submitted = st.form_submit_button("送信")
 
     if submitted and user_input:
@@ -109,7 +109,7 @@ with st.form(key="chat_form", clear_on_submit=True):
             st.experimental_rerun()
         similar_q, similar_a = find_similar_question(user_input, faq_df)
         answer = generate_response(similar_q, similar_a, user_input)
-        st.session_state.chat_log.insert(0, (user_input, answer))
+        st.session_state.chat_log.append((user_input, answer))
         st.experimental_rerun()
 
 # チャット履歴表示
