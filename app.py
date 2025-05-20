@@ -117,12 +117,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# --- 本文（例） ---
-st.title("LRADサポートチャット")
-st.caption("※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。")
-
-
-
 # ログ保存ボタン
 if st.button("チャットログを保存"):
     filename = save_log(st.session_state.chat_log)
