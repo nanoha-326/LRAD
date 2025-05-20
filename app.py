@@ -106,25 +106,33 @@ size_map = {
 selected = size_map[font_size]
 
 # --- CSS を適用 ---
-st.markdown(
-    f"""
-    <style>
-    /* 全体のフォントサイズ */
-    .stApp {{
-        font-size: {selected['body']} !important;
-    }}
-    /* タイトルのサイズ */
-    h1 {{
-        font-size: {selected['title']} !important;
-    }}
-    /* キャプションのサイズ（streamlit の caption 対象） */
-    .st-emotion-cache-1v0mbdj {{
-        font-size: {selected['caption']} !important;
-    }}
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+font_size_title = "36px"
+font_size_caption = "16px"
+font_size_body = "18px"
+
+st.markdown(f"""
+<style>
+/* タイトル（h1） */
+h1 {{
+    font-size: {font_size_title} !important;
+}}
+
+/* キャプションに使われるpタグの中のsmall要素 */
+p > small {{
+    font-size: {font_size_caption} !important;
+}}
+
+/* 通常テキストやチャットテキスト */
+div.stText, div[data-testid="stMarkdownContainer"] > div p {{
+    font-size: {font_size_body} !important;
+}}
+
+/* チャットメッセージ */
+div.stChatMessage p {{
+    font-size: {font_size_body} !important;
+}}
+</style>
+""", unsafe_allow_html=True)
 
 # ログ保存ボタン
 if st.button("チャットログを保存"):
