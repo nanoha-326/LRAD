@@ -141,16 +141,6 @@ st.markdown(
     div.stTextInput > div > input {{
         font-size: {font_px}px !important;
     }}
-
-    /* ボタンの文字サイズ */
-    div.stButton > button {{
-        font-size: {font_px}px !important;
-    }}
-
-    /* チャットログ保存ボタンなどの他のボタン */
-    button[kind="primary"], button[kind="secondary"] {{
-        font-size: {font_px}px !important;
-    }}
     </style>
     """,
     unsafe_allow_html=True
