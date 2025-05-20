@@ -92,14 +92,21 @@ st.caption("※このチャットボットはFAQとAIをもとに応答します
 if 'chat_log' not in st.session_state:
     st.session_state.chat_log = []
 
+# --- サイドバーに設定項目を追加 ---
 with st.sidebar:
     st.header("⚙️ 設定変更")
-    size_option = st.radio(
-        "文字サイズを選択",
-        ["小", "中", "大"],
-        index=1,  # デフォルトは「中」
-        horizontal=False
-    )
+
+    # 文字サイズ
+    size_option = st.radio("文字サイズ", ["小", "中", "大"], index=1)
+
+    # 文字色
+    font_color = st.color_picker("文字色", "#000000")
+
+    # フォント
+    font_option = st.selectbox("フォント", ["Arial", "Helvetica", "Meiryo", "Courier New", "Noto Sans JP"])
+
+    # 背景色
+    background_color = st.color_picker("背景色", "#FFFFFF")
 
 # --- 選択されたサイズに応じたCSSを反映 ---
 size_map = {
