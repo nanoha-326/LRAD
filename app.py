@@ -113,7 +113,23 @@ font_px = size_map[size_option]
 st.markdown(
     f"""
     <style>
+    /* チャットメッセージ */
     div.stChatMessage p {{
+        font-size: {font_px}px !important;
+    }}
+
+    /* タイトル (st.title() の h1タグ) */
+    h1 {{
+        font-size: {font_px + 10}px !important;
+    }}
+
+    /* キャプション (p > small) */
+    p > small {{
+        font-size: {max(font_px - 4, 10)}px !important;
+    }}
+
+    /* 通常の本文テキスト */
+    div.stText, div[data-testid="stMarkdownContainer"] > div p {{
         font-size: {font_px}px !important;
     }}
     </style>
