@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import openai
+from openai import OpenAI
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 import datetime
@@ -11,7 +11,7 @@ import unicodedata
 st.set_page_config(page_title="LRADサポートチャット", page_icon="\U0001F4D8", layout="centered")
 
 # --- OpenAI APIキー設定 ---
-openai.api_key = st.secrets.OpenAIAPI.openai_api_key
+client = OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
 
 # --- 埋め込みモデル読み込み ---
 model = SentenceTransformer('all-MiniLM-L6-v2')
