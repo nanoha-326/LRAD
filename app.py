@@ -128,7 +128,7 @@ def generate_response(context_q: str, context_a: str, user_input: str) -> str:
         f"ユーザーの質問: {user_input}\n\n"
         "これを参考に、丁寧でわかりやすく自然な回答をしてください。"
     )
-    res = openai.ChatCompletion.create(
+    response = openai.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
             {"role": "system", "content": system_prompt},
@@ -136,7 +136,7 @@ def generate_response(context_q: str, context_a: str, user_input: str) -> str:
         ],
         temperature=1.5,
     )
-    return res.choices[0].message.content
+    answer = response.choices[0].message.content
 
 
 # ---------- チャットログ保存 ----------
