@@ -1,199 +1,120 @@
 import streamlit as st
 import pandas as pd
-import openai
-from sentence_transformers import SentenceTransformer
-from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
 import datetime
 import re
 import unicodedata
+from sklearn.metrics.pairwise import cosine_similarity
+from openai import OpenAI  # 新バージョン用
 
-# ---------- Streamlit の設定 ----------
-st.set_page_config(
-    page_title="LRADサポートチャット",
-    page_icon="📘",
-    layout="centered"
-)
+# --- Streamlitの設定 ---
+st.set_page_config(page_title="LRADサポートチャット", page_icon="📘", layout="centered")
 
-# ---------- CSS（チャットフォーム固定とチャットエリア余白調整） ----------
-st.markdown("""
-<style>
-body { background-color:#f6f6f6; }
+# --- OpenAIクライアントの初期化 ---
+client = OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
 
-.chat-container {
-    max-width: 700px;
-    margin: 0 auto;
-    padding: 10px;
-    padding-bottom: 140px;  /* フォームの高さ分の余白を確保 */
-}
-
-.user-message {
-    background:#dcf8c6;
-    border-radius:20px 20px 0 20px;
-    margin:10px 0 10px 40px;
-    padding:12px 15px;
-    max-width:75%;
-    font-size:16px;
-    word-break:break-word;
-    box-shadow:0 1px 1px rgba(0,0,0,.1);
-}
-.bot-message {
-    background:#fff;
-    border-radius:20px 20px 20px 0;
-    margin:10px 40px 10px 0;
-    padding:12px 15px;
-    max-width:75%;
-    font-size:16px;
-    word-break:break-word;
-    box-shadow:0 1px 1px rgba(0,0,0,.1);
-}
-
-/* チャットフォーム固定 */
-.chat-form-container {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    background: #f6f6f6;
-    padding: 10px 20px;
-    box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
-    z-index: 9999;
-}
-
-/* 入力欄のフォントサイズ調整 */
-.stTextInput > div > input {
-    font-size: 16px;
-}
-</style>
-""", unsafe_allow_html=True)
-
-# ---------- OpenAI API キー ----------
-openai.api_key = st.secrets.OpenAIAPI.openai_api_key
-
-# ---------- 埋め込みモデル ----------
-model = SentenceTransformer("all-MiniLM-L6-v2")
-
-# ---------- システムプロンプト ----------
+# --- システムプロンプト ---
 system_prompt = """
 あなたはLRAD専用のチャットボットです。
 「LRAD（エルラド）」とは熱分解装置（遠赤外線電子熱分解装置）のことで、これは有機廃棄物の処理装置です。
 あなたの役割は、この装置の検証をサポートすることです。
 
 以下の点を守ってください：
-・あなたはLRADの専門家として利用者の質問にわかりやすく回答し、処理検証をサポートできます。
-・装置に関連することのみを答えてください。それ以外の質問（例：天気、有名人、趣味、思想、料理、政治、ゲーム、スポーツ、健康など）には絶対に答えないでください。
-・世間話をされてもLRADに関係のない場合は答えないでください。
-・質問には親切に、できるだけ分かりやすく答えてください。
-・FAQのファイル内に類似する情報がない場合は、回答が不明であることを丁寧に伝え、適切に対応してください。
+・装置に関連することのみを答えてください。
+・関係ない話題（天気、芸能、スポーツなど）には答えないでください。
+・FAQにない場合は「わかりません」と丁寧に答えてください。
 """
 
-# ---------- 入力バリデーション ----------
+# --- 入力バリデーション ---
 def is_valid_input(text: str) -> bool:
     text = text.strip()
     if len(text) < 3 or len(text) > 300:
         return False
-    non_alpha_ratio = len(re.findall(r"[^A-Za-z0-9ぁ-んァ-ヶ一-龠\s]", text)) / len(text)
+    non_alpha_ratio = len(re.findall(r'[^A-Za-z0-9ぁ-んァ-ヶ一-龠\s]', text)) / len(text)
     if non_alpha_ratio > 0.3:
         return False
     try:
-        unicodedata.normalize("NFKC", text).encode("utf-8")
+        unicodedata.normalize('NFKC', text).encode('utf-8')
     except UnicodeError:
         return False
     return True
 
+# --- 埋め込み生成 ---
+def get_embedding(text):
+    response = client.embeddings.create(
+        input=[text],
+        model="text-embedding-ada-002"
+    )
+    return np.array(response.data[0].embedding)
 
-# ---------- FAQ 読み込み ----------
-@st.cache_data(show_spinner="FAQ 読み込み中…")
-def load_faq(path: str) -> pd.DataFrame:
-    df = pd.read_csv(path)
-    df["embedding"] = df["質問"].apply(lambda x: model.encode(x))
+# --- FAQロード（埋め込み付き） ---
+@st.cache_data
+def load_faq(csv_file):
+    df = pd.read_csv(csv_file)
+    df['embedding'] = df['質問'].apply(lambda x: get_embedding(x))
     return df
 
 faq_df = load_faq("faq.csv")
 
-
-# ---------- 類似質問検索 ----------
-def find_similar_question(query: str):
-    user_vec = model.encode([query])
-    faq_vecs = list(faq_df["embedding"])
-    scores = cosine_similarity(user_vec, faq_vecs)[0]
+# --- 類似質問検索 ---
+def find_similar_question(user_input, faq_df):
+    user_vec = get_embedding(user_input)
+    faq_vecs = np.stack(faq_df['embedding'].values)
+    scores = cosine_similarity([user_vec], faq_vecs)[0]
     top_idx = scores.argmax()
-    return faq_df.iloc[top_idx]["質問"], faq_df.iloc[top_idx]["回答"]
+    return faq_df.iloc[top_idx]['質問'], faq_df.iloc[top_idx]['回答']
 
-
-# ---------- GPT で回答生成 ----------
-def generate_response(context_q: str, context_a: str, user_input: str) -> str:
-    prompt = (
-        "以下はFAQに基づいたチャットボットの会話です。\n\n"
-        f"質問: {context_q}\n回答: {context_a}\n\n"
-        f"ユーザーの質問: {user_input}\n\n"
-        "これを参考に、丁寧でわかりやすく自然な回答をしてください。"
-    )
-    response = openai.chat.completions.create(
+# --- GPT応答生成 ---
+def generate_response(context_q, context_a, user_input):
+    prompt = f"以下はFAQに基づいたチャットボットの会話です。\n\n質問: {context_q}\n回答: {context_a}\n\nユーザーの質問: {user_input}\n\nこれを参考に、丁寧でわかりやすく自然な回答をしてください。"
+    response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": prompt},
+            {"role": "user", "content": prompt}
         ],
-        temperature=1.5,
+        temperature=1.2
     )
-    answer = response.choices[0].message.content
+    return response.choices[0].message.content
 
+# --- ログ保存 ---
+def save_log(log_data):
+    now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"chatlog_{now}.csv"
+    pd.DataFrame(log_data, columns=["ユーザーの質問", "チャットボットの回答"]).to_csv(filename, index=False)
+    return filename
 
-# ---------- チャットログ保存 ----------
-def save_log(log):
-    ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    fname = f"chatlog_{ts}.csv"
-    pd.DataFrame(log, columns=["ユーザー", "チャットボット"]).to_csv(fname, index=False)
-    return fname
-
-
-# ---------- UI ----------
+# --- UI ---
 st.title("LRADサポートチャット")
-st.caption("※FAQとGPTを用いて回答します。内容の正確性は保証されません。")
+st.caption("※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。")
 
-if "chat_log" not in st.session_state:
+if 'chat_log' not in st.session_state:
     st.session_state.chat_log = []
 
-# サイドバー（省略可）
-with st.sidebar:
-    st.markdown("### ⚙️ 表示設定")
-    font_size = st.radio("文字サイズ", ["小", "標準", "大"], index=1)
-    st.divider()
-    st.markdown("背景色テーマ等を追加予定")
+# ログ保存ボタン
+if st.button("チャットログを保存"):
+    filename = save_log(st.session_state.chat_log)
+    st.success(f"チャットログを保存しました: {filename}")
+    with open(filename, "rb") as f:
+        st.download_button("このチャットログをダウンロード", data=f, file_name=filename, mime="text/csv")
 
-# チャットログ表示
-st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-
-for u, a in st.session_state.chat_log:
-    st.markdown(f'<div class="user-message">{u}</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="bot-message">{a}</div>', unsafe_allow_html=True)
-
-st.markdown("</div>", unsafe_allow_html=True)
-
-# チャットフォーム固定部分
-st.markdown('<div class="chat-form-container">', unsafe_allow_html=True)
-
+# 入力フォーム
 with st.form(key="chat_form", clear_on_submit=True):
-    user_input = st.text_input("", placeholder="質問をどうぞ")
+    user_input = st.text_input("質問をどうぞ：", key="user_input")
     submitted = st.form_submit_button("送信")
 
     if submitted and user_input:
         if not is_valid_input(user_input):
-            st.session_state.chat_log.append(
-                (user_input, "入力エラー：3〜300文字で、記号を多用しないでください。")
-            )
+            st.session_state.chat_log.insert(0, (user_input, "エラー：入力が不正です。"))
             st.experimental_rerun()
-
-        similar_q, similar_a = find_similar_question(user_input)
+        similar_q, similar_a = find_similar_question(user_input, faq_df)
         answer = generate_response(similar_q, similar_a, user_input)
-        st.session_state.chat_log.append((user_input, answer))
+        st.session_state.chat_log.insert(0, (user_input, answer))
         st.experimental_rerun()
 
-st.markdown('</div>', unsafe_allow_html=True)
-
-# チャットログ保存ボタン
-if st.button("チャットログを保存"):
-    fname = save_log(st.session_state.chat_log)
-    st.success(f"チャットログを保存しました：{fname}")
-    with open(fname, "rb") as f:
-        st.download_button("ダウンロード", data=f, file_name=fname, mime="text/csv")
+# チャット履歴表示
+for user_msg, bot_msg in st.session_state.chat_log:
+    with st.chat_message("user"):
+        st.markdown(user_msg)
+    with st.chat_message("assistant"):
+        st.markdown(bot_msg)
