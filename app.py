@@ -112,6 +112,17 @@ body {{ background:#f6f6f6; }}
     padding:12px 15px;max-width:75%;font-size:{font_size_map[font_size]};
     box-shadow:0 1px 1px rgba(0,0,0,.1);word-break:break-word;
 }}
+.input-form {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: #f6f6f6;
+    padding: 10px 20px;
+    box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+    z-index: 999;
+}
+
 </style>
 """,
     unsafe_allow_html=True,
@@ -125,9 +136,11 @@ for u, a in st.session_state.chat_log:
 
 st.markdown("</div>", unsafe_allow_html=True)
 
-# ---------- 入力フォーム ----------
+# ---------- 入力欄（画面下固定） ----------
+st.markdown('<div class="input-form">', unsafe_allow_html=True)
+
 with st.form(key="chat_form", clear_on_submit=True):
-    user_input = st.text_input("", placeholder="質問をどうぞ")
+    user_input = st.text_input("質問をどうぞ", label_visibility="collapsed")
     submitted = st.form_submit_button("送信")
 
     if submitted and user_input:
@@ -135,11 +148,15 @@ with st.form(key="chat_form", clear_on_submit=True):
             st.session_state.chat_log.append(
                 (user_input, "入力エラー：3〜300文字で、記号を多用しないでください。")
             )
-        else:
-            q, a = find_similar_question(user_input)
-            answer = generate_response(q, a, user_input)
-            st.session_state.chat_log.append((user_input, answer))
+            st.experimental_rerun()
+
+        similar_q, similar_a = find_similar_question(user_input)
+        answer = generate_response(similar_q, similar_a, user_input)
+        st.session_state.chat_log.append((user_input, answer))
         st.experimental_rerun()
+
+st.markdown('</div>', unsafe_allow_html=True)
+
 
 # ---------- チャットログ保存 ----------
 if st.button("チャットログを保存"):
