@@ -1,36 +1,70 @@
-import streamlit as st
-import pandas as pd
-import numpy as np
-import datetime
-import re
-import unicodedata
-from sklearn.metrics.pairwise import cosine_similarity
-from openai import OpenAI  # 新バージョン用
+###############################
+#  LRAD サポートチャットボット  #
+#   (Perplexity API 版)       #
+###############################
+"""
+必要ファイル / 構成:
+────────────────────────────
+📄 lrad_perplexity_app.py   ← このファイル (Streamlit アプリ本体)
+📄 faq.csv                  ← 質問,回答 の2列のみで構成した CSV
+📄 requirements.txt         ← 下記ライブラリを列挙
 
-# --- Streamlitの設定 ---
-st.set_page_config(page_title="LRADサポートチャット", page_icon="📘", layout="centered")
+requirements.txt の例
+────────────────────────────
+streamlit
+pandas
+requests
+rapidfuzz>=3.0
 
-# --- OpenAIクライアントの初期化 ---
-client = OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
+Secrets の設定 (Streamlit Cloud)
+────────────────────────────
+[PerplexityAPI]
+api_key = "pk-XXXXXXXXXXXXXXXXXXXXXXXXXXXX"
 
-# --- システムプロンプト ---
-system_prompt = """
-あなたはLRAD専用のチャットボットです。
-「LRAD（エルラド）」とは熱分解装置（遠赤外線電子熱分解装置）のことで、これは有機廃棄物の処理装置です。
-あなたの役割は、この装置の検証をサポートすることです。
-
-以下の点を守ってください：
-・装置に関連することのみを答えてください。
-・関係ない話題（天気、芸能、スポーツなど）には答えないでください。
-・FAQにない場合は「わかりません」と丁寧に答えてください。
+ファイルを配置し `streamlit run lrad_perplexity_app.py` で起動してください。
 """
 
-# --- 入力バリデーション ---
+import streamlit as st
+import pandas as pd
+import requests
+import datetime
+from rapidfuzz import fuzz
+import unicodedata
+import re
+import numpy as np
+
+########################
+# アプリ基本設定
+########################
+st.set_page_config(
+    page_title="LRADサポートチャット (Perplexity版)",
+    page_icon="📘",
+    layout="centered"
+)
+
+########################
+# 定数 / ヘルパ
+########################
+SYSTEM_PROMPT = (
+    "あなたはLRAD（エルラド）という遠赤外線電子熱分解装置の専門家です。"
+    "FAQや参考資料を活用しながら、装置の使用方法・注意事項について200文字以内で正確かつ親切に回答してください。"
+    "装置に無関係な質問には答えず、関係ない場合は丁寧に断ってください。"
+)
+
+API_KEY = st.secrets["PerplexityAPI"]["api_key"]
+API_URL = "https://api.perplexity.ai/chat/completions"
+MODEL_ID = "llama-3-sonar-small-32k-chat"  # 適宜変更可
+
+########################
+# ユーティリティ関数
+########################
+
 def is_valid_input(text: str) -> bool:
+    """簡易バリデーション (長さ・異常文字)"""
     text = text.strip()
     if len(text) < 3 or len(text) > 300:
         return False
-    non_alpha_ratio = len(re.findall(r'[^A-Za-z0-9ぁ-んァ-ヶ一-龠\s]', text)) / len(text)
+    non_alpha_ratio = len(re.findall(r"[^A-Za-z0-9ぁ-んァ-ヶ一-龠\s]", text)) / len(text)
     if non_alpha_ratio > 0.3:
         return False
     try:
@@ -39,140 +73,116 @@ def is_valid_input(text: str) -> bool:
         return False
     return True
 
-# --- 埋め込み生成 ---
-def get_embedding(text):
-    response = client.embeddings.create(
-        input=[text],
-        model="text-embedding-ada-002"
-    )
-    return np.array(response.data[0].embedding)
-
-# --- FAQロード（埋め込み付き） ---
-@st.cache_data
-def load_faq(csv_file):
-    df = pd.read_csv(csv_file)
-    df['embedding'] = df['質問'].apply(lambda x: get_embedding(x))
+########################
+# FAQ ロード (キャッシュ)
+########################
+@st.cache_data(show_spinner="FAQを読み込み中…")
+def load_faq(path: str) -> pd.DataFrame:
+    df = pd.read_csv(path)
+    # 必須列チェック
+    if not set(["質問", "回答"]).issubset(df.columns):
+        st.error("faq.csv には '質問' と '回答' 列が必要です。")
+        st.stop()
     return df
 
 faq_df = load_faq("faq.csv")
 
-# --- 類似質問検索 ---
-def find_similar_question(user_input, faq_df):
-    user_vec = get_embedding(user_input)
-    faq_vecs = np.stack(faq_df['embedding'].values)
-    scores = cosine_similarity([user_vec], faq_vecs)[0]
-    top_idx = scores.argmax()
-    return faq_df.iloc[top_idx]['質問'], faq_df.iloc[top_idx]['回答']
+########################
+# 類似質問検索 (RapidFuzz)
+########################
 
-# --- GPT応答生成 ---
-def generate_response(context_q, context_a, user_input):
-    prompt = f"以下はFAQに基づいたチャットボットの会話です。\n\n質問: {context_q}\n回答: {context_a}\n\nユーザーの質問: {user_input}\n\nこれを参考に、丁寧でわかりやすく自然な回答をしてください。"
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": system_prompt},
+def search_similar_question(query: str, top_k: int = 1):
+    """RapidFuzz の token_set_ratio で最も高い質問を返す"""
+    scores = faq_df['質問'].apply(lambda q: fuzz.token_set_ratio(q, query))
+    best_idx = int(np.argmax(scores))
+    best_score = scores.iloc[best_idx]
+    if best_score < 50:  # 閾値以下はマッチ無し扱い
+        return None, None, 0
+    return faq_df.iloc[best_idx]['質問'], faq_df.iloc[best_idx]['回答'], best_score
+
+########################
+# Perplexity への問い合わせ
+########################
+
+def call_perplexity(prompt: str) -> str:
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json"
+    }
+    body = {
+        "model": MODEL_ID,
+        "messages": [
+            {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": prompt}
         ],
-        temperature=1.2
-    )
-    return response.choices[0].message.content
+        "temperature": 0.7
+    }
+    try:
+        res = requests.post(API_URL, headers=headers, json=body, timeout=45)
+        res.raise_for_status()
+        data = res.json()
+        return data["output"][0]["content"][0]["text"]
+    except Exception as e:
+        st.error(f"Perplexity API エラー: {e}")
+        return "回答を生成できませんでした。時間をおいて再度お試しください。"
 
-# --- ログ保存 ---
-def save_log(log_data):
-    now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"chatlog_{now}.csv"
-    pd.DataFrame(log_data, columns=["ユーザーの質問", "チャットボットの回答"]).to_csv(filename, index=False, encoding='utf-8-sig')
+########################
+# チャットログ保存
+########################
+
+def save_log(log):
+    ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"chatlog_{ts}.csv"
+    pd.DataFrame(log, columns=["質問", "回答"]).to_csv(filename, index=False)
     return filename
 
+########################
+# UI レイアウト
+########################
 
-# --- UI ---
-st.title("LRADサポートチャット")
-st.caption("※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。")
+st.title("LRAD サポートチャット (Perplexity版)")
+st.caption("※FAQとPerplexity AIを用いて回答を生成します。")
 
 if 'chat_log' not in st.session_state:
     st.session_state.chat_log = []
 
-# --- サイドバーに設定項目を追加 ---
 with st.sidebar:
-    st.header("⚙️ 設定変更")
-    size_option = st.radio(
-        "文字サイズを選択",
-        ["小", "中", "大"],
-        index=1,  # デフォルトは「中」
-        horizontal=False
-    )
+    st.header("設定")
+    if st.button("チャットログを保存"):
+        fname = save_log(st.session_state.chat_log)
+        st.success(f"チャットログを保存しました: {fname}")
+        with open(fname, "rb") as f:
+            st.download_button("ダウンロード", data=f, file_name=fname, mime="text/csv")
 
-# --- 選択されたサイズに応じたCSSを反映 ---
-size_map = {
-    "小": 18,
-    "中": 22,
-    "大": 30
-}
-font_px = size_map[size_option]
+########################
+# チャット入力 & 応答
+########################
 
-st.markdown(
-    f"""
-    <style>
-    /* チャットメッセージ */
-    div.stChatMessage p {{
-        font-size: {font_px}px !important;
-    }}
+user_input = st.chat_input("質問を入力してください")
 
-    /* タイトル (st.title() の h1タグ) */
-    h1 {{
-        font-size: {font_px + 10}px !important;
-    }}
-
-    /* キャプション (p > small) */
-    p > small {{
-        font-size: {max(font_px - 4, 10)}px !important;
-    }}
-
-    /* 通常の本文テキスト */
-    div.stText, div[data-testid="stMarkdownContainer"] > div p {{
-        font-size: {font_px}px !important;
-    }}
-        /* テキスト入力のプレースホルダー文字サイズ */
-    div.stTextInput > div > input::placeholder {{
-        font-size: {font_px}px !important;
-    }}
-
-    /* テキスト入力の中の文字サイズ */
-    div.stTextInput > div > input {{
-        font-size: {font_px}px !important;
-    }}
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-# ログ保存ボタン
-if st.button("チャットログを保存"):
-    filename = save_log(st.session_state.chat_log)
-    st.success(f"チャットログを保存しました: {filename}")
-    with open(filename, "rb") as f:
-        st.download_button("このチャットログをダウンロード", data=f, file_name=filename, mime="text/csv")
-
-# 入力フォーム
-with st.form(key="chat_form", clear_on_submit=True):
-    user_input = st.text_area("質問をどうぞ：", height=100)
-    submitted = st.form_submit_button("送信")
-
-if submitted and user_input:
+if user_input:
     if not is_valid_input(user_input):
-        st.session_state.chat_log.insert(0, (user_input, "エラー：入力が不正です。"))
-        st.experimental_rerun()
+        st.error("入力内容に問題があります。3〜300文字で、特殊文字を含めすぎないようにしてください。")
+    else:
+        # 類似FAQ検索
+        ref_q, ref_a, score = search_similar_question(user_input)
+        if ref_q is not None:
+            reference_block = (
+                f"参考FAQ:\n質問: {ref_q}\n回答: {ref_a}\n---\n"
+            )
+        else:
+            reference_block = ""
 
-    with st.spinner("回答生成中…お待ちください。"):
-        similar_q, similar_a = find_similar_question(user_input, faq_df)
-        answer = generate_response(similar_q, similar_a, user_input)
+        # Perplexity へのプロンプト
+        prompt = reference_block + f"ユーザー質問: {user_input}"
+        answer = call_perplexity(prompt)
 
-    st.session_state.chat_log.insert(0, (user_input, answer))
-    st.experimental_rerun()
+        # ログに保存
+        st.session_state.chat_log.insert(0, (user_input, answer))
 
-# チャット履歴表示
-for user_msg, bot_msg in st.session_state.chat_log:
+# チャット履歴表示 (新しい順)
+for q, a in st.session_state.chat_log:
     with st.chat_message("user"):
-        st.markdown(user_msg)
+        st.markdown(q)
     with st.chat_message("assistant"):
-        st.markdown(bot_msg)
+        st.markdown(a)
