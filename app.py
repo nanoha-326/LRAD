@@ -78,26 +78,35 @@ def save_log(log_data):
 st.title("LRADサポートチャット")
 st.caption("※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。")
 
-st.title("LRADサポートチャット")
 
-# ページ上部にCSS埋め込み
-st.markdown(f"""
+# --- サイドバーに設定項目を追加 ---
+with st.sidebar:
+    st.header("⚙️ 設定変更")
+    size_option = st.radio(
+        "文字サイズを選択",
+        ["小", "中", "大"],
+        index=1,  # デフォルトは「中」
+        horizontal=False
+    )
+
+# --- 選択されたサイズに応じたCSSを反映 ---
+size_map = {
+    "小": 14,
+    "中": 18,
+    "大": 24
+}
+font_px = size_map[size_option]
+
+st.markdown(
+    f"""
     <style>
-    /* ここにCSS */
-    input[type="text"], textarea {{
-        font-size: {font_px}px !important;
-    }}
-    button {{
-        font-size: {font_px}px !important;
-    }}
     div.stChatMessage p {{
         font-size: {font_px}px !important;
     }}
     </style>
-""", unsafe_allow_html=True)
-
-st.caption("※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。")
-
+    """,
+    unsafe_allow_html=True
+)
 
 if 'chat_log' not in st.session_state:
     st.session_state.chat_log = []
