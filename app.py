@@ -78,6 +78,27 @@ def save_log(log_data):
 st.title("LRADサポートチャット")
 st.caption("※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。")
 
+st.title("LRADサポートチャット")
+
+# ページ上部にCSS埋め込み
+st.markdown(f"""
+    <style>
+    /* ここにCSS */
+    input[type="text"], textarea {{
+        font-size: {font_px}px !important;
+    }}
+    button {{
+        font-size: {font_px}px !important;
+    }}
+    div.stChatMessage p {{
+        font-size: {font_px}px !important;
+    }}
+    </style>
+""", unsafe_allow_html=True)
+
+st.caption("※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。")
+
+
 if 'chat_log' not in st.session_state:
     st.session_state.chat_log = []
 
