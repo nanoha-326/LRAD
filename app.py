@@ -1,26 +1,23 @@
-# FAQチャットボット with GPT補完・類似検索・ログ保存（不正入力対応版）
-
 import streamlit as st
 import pandas as pd
 import openai
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 import datetime
-import secret_keys
-from PIL import Image
 import re
 import unicodedata
 
 # --- Streamlitの設定 ---
 st.set_page_config(page_title="LRADサポートチャット", page_icon="\U0001F4D8", layout="centered")
 
-# --- 初期設定 ---
-# Streamlit Community Cloudの「Secrets」からOpenAI API keyを取得★
+# --- OpenAI APIキー設定 ---
 openai.api_key = st.secrets.OpenAIAPI.openai_api_key
 
+# --- 埋め込みモデル読み込み ---
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
-system_prompt ="""
+# --- システムプロンプト ---
+system_prompt = """
 あなたはLRAD専用のチャットボットです。
 「LRAD（エルラド）」とは熱分解装置（遠赤外線電子熱分解装置）のことで、これは有機廃棄物の処理装置です。
 あなたの役割は、この装置の検証をサポートすることです。
@@ -33,7 +30,7 @@ system_prompt ="""
 ・FAQのファイル内に類似する情報がない場合は、回答が不明であることを丁寧に伝え、適切に対応してください。
 """
 
-# --- 入力バリデーション関数 ---
+# --- 入力バリデーション ---
 def is_valid_input(text: str) -> bool:
     text = text.strip()
     if len(text) < 3 or len(text) > 300:
@@ -48,7 +45,7 @@ def is_valid_input(text: str) -> bool:
         return False
     return True
 
-# --- FAQ CSVの読み込み ---
+# --- FAQデータ読み込み ---
 @st.cache_data
 def load_faq(csv_file):
     df = pd.read_csv(csv_file)
@@ -65,9 +62,14 @@ def find_similar_question(user_input, faq_df):
     top_idx = scores.argmax()
     return faq_df.iloc[top_idx]['質問'], faq_df.iloc[top_idx]['回答']
 
-# --- OpenAI補完 ---
+# --- GPTによる補完応答 ---
 def generate_response(context_question, context_answer, user_input):
-    prompt = f"以下はFAQに基づいたチャットボットの会話です。\n\n質問: {context_question}\n回答: {context_answer}\n\nユーザーの質問: {user_input}\n\nこれを参考に、丁寧でわかりやすく自然な回答をしてください。"
+    prompt = (
+        f"以下はFAQに基づいたチャットボットの会話です。\n\n"
+        f"質問: {context_question}\n回答: {context_answer}\n\n"
+        f"ユーザーの質問: {user_input}\n\n"
+        "これを参考に、丁寧でわかりやすく自然な回答をしてください。"
+    )
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[
@@ -86,13 +88,15 @@ def save_log(log_data):
     log_df.to_csv(filename, index=False)
     return filename
 
-# --- UI 初期設定 ---
+# --- UIタイトル ---
 st.title("LRADサポートチャット")
 st.caption("※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。")
 
+# --- セッションステート初期化 ---
 if 'chat_log' not in st.session_state:
     st.session_state.chat_log = []
 
+# --- サイドバー設定 ---
 with st.sidebar:
     st.markdown("### ⚙️ 表示設定")
     font_size = st.radio("文字サイズ", ["小", "標準", "大"], index=1)
@@ -100,39 +104,100 @@ with st.sidebar:
     st.markdown("背景色などの切り替え機能も追加できます")
 
 font_size_map = {"小": "14px", "標準": "16px", "大": "20px"}
+
+# --- CSSでLINE風吹き出しデザイン ---
 st.markdown(f"""
-    <style>
-    .chat-message {{
-        font-size: {font_size_map[font_size]} !important;
-    }}
-    </style>
+<style>
+body {{
+    background-color: #f6f6f6;
+}}
+.chat-container {{
+    max-width: 700px;
+    margin: 0 auto 100px auto;
+    padding: 10px;
+}}
+.user-message {{
+    background-color: #dcf8c6;
+    padding: 12px 15px;
+    border-radius: 20px 20px 0 20px;
+    margin: 10px 0 10px 40px;
+    max-width: 75%;
+    font-size: {font_size_map[font_size]};
+    word-break: break-word;
+    box-shadow: 0 1px 1px rgb(0 0 0 / 0.1);
+}}
+.bot-message {{
+    background-color: #ffffff;
+    padding: 12px 15px;
+    border-radius: 20px 20px 20px 0;
+    margin: 10px 40px 10px 0;
+    max-width: 75%;
+    font-size: {font_size_map[font_size]};
+    word-break: break-word;
+    box-shadow: 0 1px 1px rgb(0 0 0 / 0.1);
+}}
+.input-area {{
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    max-width: 720px;
+    background-color: #ffffff;
+    padding: 10px;
+    box-shadow: 0 -1px 5px rgb(0 0 0 / 0.1);
+    display: flex;
+    gap: 8px;
+    box-sizing: border-box;
+    border-top: 1px solid #ddd;
+    margin: 0 auto;
+}}
+.input-area input[type="text"] {{
+    flex-grow: 1;
+    font-size: 16px;
+    padding: 10px;
+    border-radius: 20px;
+    border: 1px solid #ccc;
+}}
+.input-area button {{
+    background-color: #0078FF;
+    border: none;
+    color: white;
+    padding: 10px 18px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: bold;
+}}
+.input-area button:hover {{
+    background-color: #005bb5;
+}}
+</style>
 """, unsafe_allow_html=True)
 
-st.markdown("""
-    <style>
-    .fixed-input {
-        position: fixed;
-        top: 30px;
-        left: 0;
-        width: 100%;
-        background-color: #f9f9f9;
-        padding: 10px;
-        z-index: 999;
-        border-bottom: 1px solid #ccc;
-    }
-    .chat-message {
-        background-color: #e1f5fe;
-        padding: 10px;
-        border-radius: 10px;
-        margin-bottom: 10px;
-    }
-    .chat-message.assistant {
-        background-color: #fff9c4;
-    }
-    </style>
-""", unsafe_allow_html=True)
+st.markdown('<div class="chat-container">', unsafe_allow_html=True)
 
-# ログ保存ボタン
+# --- チャットログ表示（最新が下）---
+for user_msg, bot_msg in reversed(st.session_state.chat_log):
+    st.markdown(f'<div class="user-message">{user_msg}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="bot-message">{bot_msg}</div>', unsafe_allow_html=True)
+
+st.markdown('</div>', unsafe_allow_html=True)
+
+# --- チャット入力フォーム ---
+with st.form(key="chat_form", clear_on_submit=True):
+    user_input = st.text_input("", placeholder="質問をどうぞ", key="user_input")
+    submitted = st.form_submit_button("送信")
+
+    if submitted and user_input:
+        if not is_valid_input(user_input):
+            error_message = "エラーが発生しています。時間を空けてから再度お試しください。"
+            st.session_state.chat_log.append((user_input, error_message))
+            st.experimental_rerun()
+
+        similar_q, similar_a = find_similar_question(user_input, faq_df)
+        final_response = generate_response(similar_q, similar_a, user_input)
+        st.session_state.chat_log.append((user_input, final_response))
+        st.experimental_rerun()
+
+# --- チャットログ保存ボタン ---
 if st.button("チャットログを保存"):
     filename = save_log(st.session_state.chat_log)
     st.success(f"チャットログを保存しました: {filename}")
@@ -143,31 +208,3 @@ if st.button("チャットログを保存"):
             file_name=filename,
             mime="text/csv"
         )
-
-# 入力フォーム
-st.markdown("<div class='fixed-input'>", unsafe_allow_html=True)
-with st.form(key="chat_form", clear_on_submit=True):
-    col1, col2 = st.columns([8, 1])
-    with col1:
-        user_input = st.text_input("質問をどうぞ：", key="user_input", label_visibility="collapsed")
-    with col2:
-        submitted = st.form_submit_button("送信")
-
-    if submitted and user_input:
-        if not is_valid_input(user_input):
-            error_message = "エラーが発生しています。時間を空けてから再度お試しください。"
-            st.session_state.chat_log.insert(0, (user_input, error_message))
-            st.experimental_rerun()
-
-        similar_q, similar_a = find_similar_question(user_input, faq_df)
-        final_response = generate_response(similar_q, similar_a, user_input)
-        st.session_state.chat_log.insert(0, (user_input, final_response))
-        st.experimental_rerun()
-st.markdown("</div>", unsafe_allow_html=True)
-
-# チャット履歴表示
-for user_msg, bot_msg in st.session_state.chat_log:
-    with st.chat_message("user"):
-        st.markdown(f"<div class='chat-message'>{user_msg}</div>", unsafe_allow_html=True)
-    with st.chat_message("assistant"):
-        st.markdown(f"<div class='chat-message assistant'>{bot_msg}</div>", unsafe_allow_html=True)
