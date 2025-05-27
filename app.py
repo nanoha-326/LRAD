@@ -1,15 +1,53 @@
 import streamlit as st
 import pandas as pd
-from openai import OpenAI                   # ★ v1 用クライアント
+import openai
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
-import datetime, re, unicodedata
+import datetime
+import re
+import unicodedata
 
-# ---------- Streamlit ----------
-st.set_page_config(page_title="LRADサポートチャット", page_icon="📘", layout="centered")
+# ---------- Streamlit の設定 ----------
+st.set_page_config(
+    page_title="LRADサポートチャット",
+    page_icon="📘",
+    layout="centered"
+)
 
+# ---------- CSS（チャットフォーム固定とチャットエリア余白調整） ----------
 st.markdown("""
 <style>
+body { background-color:#f6f6f6; }
+
+.chat-container {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 10px;
+    padding-bottom: 140px;  /* フォームの高さ分の余白を確保 */
+}
+
+.user-message {
+    background:#dcf8c6;
+    border-radius:20px 20px 0 20px;
+    margin:10px 0 10px 40px;
+    padding:12px 15px;
+    max-width:75%;
+    font-size:16px;
+    word-break:break-word;
+    box-shadow:0 1px 1px rgba(0,0,0,.1);
+}
+.bot-message {
+    background:#fff;
+    border-radius:20px 20px 20px 0;
+    margin:10px 40px 10px 0;
+    padding:12px 15px;
+    max-width:75%;
+    font-size:16px;
+    word-break:break-word;
+    box-shadow:0 1px 1px rgba(0,0,0,.1);
+}
+
+/* チャットフォーム固定 */
 .chat-form-container {
     position: fixed;
     bottom: 0;
@@ -20,16 +58,18 @@ st.markdown("""
     box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
     z-index: 9999;
 }
+
+/* 入力欄のフォントサイズ調整 */
 .stTextInput > div > input {
     font-size: 16px;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# ---------- OpenAI クライアント ----------
-client = OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
+# ---------- OpenAI API キー ----------
+openai.api_key = st.secrets.OpenAIAPI.openai_api_key
 
-# ---------- Embedding モデル ----------
+# ---------- 埋め込みモデル ----------
 model = SentenceTransformer("all-MiniLM-L6-v2")
 
 # ---------- システムプロンプト ----------
@@ -49,7 +89,7 @@ system_prompt = """
 # ---------- 入力バリデーション ----------
 def is_valid_input(text: str) -> bool:
     text = text.strip()
-    if not (3 <= len(text) <= 300):
+    if len(text) < 3 or len(text) > 300:
         return False
     non_alpha_ratio = len(re.findall(r"[^A-Za-z0-9ぁ-んァ-ヶ一-龠\s]", text)) / len(text)
     if non_alpha_ratio > 0.3:
@@ -60,6 +100,7 @@ def is_valid_input(text: str) -> bool:
         return False
     return True
 
+
 # ---------- FAQ 読み込み ----------
 @st.cache_data(show_spinner="FAQ 読み込み中…")
 def load_faq(path: str) -> pd.DataFrame:
@@ -69,12 +110,15 @@ def load_faq(path: str) -> pd.DataFrame:
 
 faq_df = load_faq("faq.csv")
 
+
 # ---------- 類似質問検索 ----------
 def find_similar_question(query: str):
     user_vec = model.encode([query])
     faq_vecs = list(faq_df["embedding"])
-    idx = cosine_similarity(user_vec, faq_vecs)[0].argmax()
-    return faq_df.iloc[idx]["質問"], faq_df.iloc[idx]["回答"]
+    scores = cosine_similarity(user_vec, faq_vecs)[0]
+    top_idx = scores.argmax()
+    return faq_df.iloc[top_idx]["質問"], faq_df.iloc[top_idx]["回答"]
+
 
 # ---------- GPT で回答生成 ----------
 def generate_response(context_q: str, context_a: str, user_input: str) -> str:
@@ -84,21 +128,24 @@ def generate_response(context_q: str, context_a: str, user_input: str) -> str:
         f"ユーザーの質問: {user_input}\n\n"
         "これを参考に、丁寧でわかりやすく自然な回答をしてください。"
     )
-    res = client.chat.completions.create(
+    res = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[
             {"role": "system", "content": system_prompt},
-            {"role": "user",   "content": prompt},
+            {"role": "user", "content": prompt},
         ],
         temperature=1.5,
     )
     return res.choices[0].message.content
 
+
 # ---------- チャットログ保存 ----------
 def save_log(log):
-    fname = f"chatlog_{datetime.datetime.now():%Y%m%d_%H%M%S}.csv"
+    ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    fname = f"chatlog_{ts}.csv"
     pd.DataFrame(log, columns=["ユーザー", "チャットボット"]).to_csv(fname, index=False)
     return fname
+
 
 # ---------- UI ----------
 st.title("LRADサポートチャット")
@@ -107,45 +154,14 @@ st.caption("※FAQとGPTを用いて回答します。内容の正確性は保�
 if "chat_log" not in st.session_state:
     st.session_state.chat_log = []
 
+# サイドバー（省略可）
 with st.sidebar:
     st.markdown("### ⚙️ 表示設定")
     font_size = st.radio("文字サイズ", ["小", "標準", "大"], index=1)
     st.divider()
+    st.markdown("背景色テーマ等を追加予定")
 
-font_size_map = {"小": "14px", "標準": "16px", "大": "20px"}
-
-# ---------- LINE 風 CSS ----------
-st.markdown(
-    f"""
-<style>
-body {{ background:#f6f6f6; }}
-.chat-container {{ max-width:700px;margin:0 auto 100px;padding:10px; }}
-.user-message {{
-    background:#dcf8c6;border-radius:20px 20px 0 20px;margin:10px 0 10px 40px;
-    padding:12px 15px;max-width:75%;font-size:{font_size_map[font_size]};
-    box-shadow:0 1px 1px rgba(0,0,0,.1);word-break:break-word;
-}}
-.bot-message {{
-    background:#fff;border-radius:20px 20px 20px 0;margin:10px 40px 10px 0;
-    padding:12px 15px;max-width:75%;font-size:{font_size_map[font_size]};
-    box-shadow:0 1px 1px rgba(0,0,0,.1);word-break:break-word;
-}}
-.input-form {{
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    background: #f6f6f6;
-    padding: 10px 20px;
-    box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
-    z-index: 999;
-}}
-
-</style>
-""",
-    unsafe_allow_html=True,
-)
-
+# チャットログ表示
 st.markdown('<div class="chat-container">', unsafe_allow_html=True)
 
 for u, a in st.session_state.chat_log:
@@ -154,11 +170,11 @@ for u, a in st.session_state.chat_log:
 
 st.markdown("</div>", unsafe_allow_html=True)
 
-# ---------- 入力欄（画面下固定） ----------
-st.markdown('<div class="input-form">', unsafe_allow_html=True)
+# チャットフォーム固定部分
+st.markdown('<div class="chat-form-container">', unsafe_allow_html=True)
 
 with st.form(key="chat_form", clear_on_submit=True):
-    user_input = st.text_input("質問をどうぞ", label_visibility="collapsed")
+    user_input = st.text_input("", placeholder="質問をどうぞ")
     submitted = st.form_submit_button("送信")
 
     if submitted and user_input:
@@ -175,8 +191,7 @@ with st.form(key="chat_form", clear_on_submit=True):
 
 st.markdown('</div>', unsafe_allow_html=True)
 
-
-# ---------- チャットログ保存 ----------
+# チャットログ保存ボタン
 if st.button("チャットログを保存"):
     fname = save_log(st.session_state.chat_log)
     st.success(f"チャットログを保存しました：{fname}")
