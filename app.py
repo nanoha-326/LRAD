@@ -8,6 +8,24 @@ import datetime, re, unicodedata
 # ---------- Streamlit ----------
 st.set_page_config(page_title="LRADサポートチャット", page_icon="📘", layout="centered")
 
+st.markdown("""
+<style>
+.chat-form-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: #f6f6f6;
+    padding: 10px 20px;
+    box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+    z-index: 9999;
+}
+.stTextInput > div > input {
+    font-size: 16px;
+}
+</style>
+""", unsafe_allow_html=True)
+
 # ---------- OpenAI クライアント ----------
 client = OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
 
