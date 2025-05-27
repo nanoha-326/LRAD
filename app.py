@@ -63,6 +63,9 @@ def find_similar_question(user_input, faq_df):
     scores = cosine_similarity([user_vec], faq_vecs)[0]
     top_idx = scores.argmax()
     return faq_df.iloc[top_idx]['質問'], faq_df.iloc[top_idx]['回答']
+with st.spinner("回答生成中…お待ちください。"):
+    answer = generate_response(similar_q, similar_a, user_input)
+
 
 # --- GPT応答生成 ---
 def generate_response(context_q, context_a, user_input):
