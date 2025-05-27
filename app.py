@@ -112,7 +112,7 @@ body {{ background:#f6f6f6; }}
     padding:12px 15px;max-width:75%;font-size:{font_size_map[font_size]};
     box-shadow:0 1px 1px rgba(0,0,0,.1);word-break:break-word;
 }}
-.input-form {
+.input-form {{
     position: fixed;
     bottom: 0;
     left: 0;
@@ -121,7 +121,7 @@ body {{ background:#f6f6f6; }}
     padding: 10px 20px;
     box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
     z-index: 999;
-}
+}}
 
 </style>
 """,
