@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 import os
+import random
 
 # --- ページ設定 ---
 st.set_page_config(page_title="LRADサポートチャット", layout="centered")
@@ -17,20 +18,30 @@ def get_embedding(text, model="text-embedding-3-small"):
     response = openai.embeddings.create(input=[text], model=model)
     return np.array(response.data[0].embedding)
 
-# --- FAQ読み込み（埋め込み付き） ---
+# --- 全質問用FAQ読み込み（回答検索用） ---
 @st.cache_data
-def load_faq(path="faq.csv", embed_path="faq_with_embeddings.csv"):
-    if os.path.exists(embed_path):
-        df = pd.read_csv(embed_path)
-        df['embedding'] = df['embedding'].apply(eval).apply(np.array)
-    else:
-        df = pd.read_csv(path)
-        with st.spinner("FAQにembeddingを付与中...（初回のみ）"):
-            df["embedding"] = df["質問"].apply(get_embedding)
-        df.to_csv(embed_path, index=False)
+def load_faq_all(csv_file):
+    df = pd.read_csv(csv_file)
+    df['embedding'] = df['質問'].apply(lambda x: get_embedding(x))
     return df
 
-faq_df = load_faq()
+# --- よくある質問用FAQ読み込み（ランダム表示用） ---
+@st.cache_data
+def load_faq_common(csv_file):
+    df = pd.read_csv(csv_file)
+    return df
+
+faq_df = load_faq_all("faq_all.csv")         # 全FAQ（embedding付き）
+common_faq_df = load_faq_common("faq_common.csv")  # よくある質問（embeddingなし）
+
+# --- ランダムによくある質問3件を表示 ---
+def display_random_common_faqs(common_faq_df, n=3):
+    sampled = common_faq_df.sample(n)
+    st.markdown("### よくある質問の例")
+    for i, row in enumerate(sampled.itertuples(), 1):
+        st.markdown(f"**{i}. {row.質問}**")
+        st.markdown(f"回答: {row.回答}")
+        st.markdown("---")
 
 # --- 類似質問検索 ---
 def find_top_similar_questions(user_input, faq_df, top_n=5):
@@ -71,31 +82,22 @@ st.title("🤖 LRADサポートチャット")
 # 入力欄（即時反応）
 user_input = st.text_input("質問をどうぞ：", value=st.session_state.user_input, key="user_input")
 
-# 類似質問の即時表示
-if user_input:
-    st.subheader("🔍 入力に基づくおすすめの質問")
-    suggested_qas = find_top_similar_questions(user_input, faq_df)
-    for i, (q, a) in enumerate(suggested_qas):
-        # ボタン押下で回答生成・チャットログ追加・画面再読み込み
-        if st.button(f"{i+1}. {q}"):
-            with st.spinner("回答生成中…お待ちください。"):
-                answer = generate_response(q, a, q)
-            st.session_state.chat_log.insert(0, (q, answer))
-            st.session_state.user_input = ""  # 入力欄クリア
-            st.experimental_rerun()
+# --- 既存のフォームの直前にランダムFAQ表示を入れる例 ---
+display_random_common_faqs(common_faq_df, n=3)
 
-# 送信ボタンで直接質問送信
-if st.button("送信") and user_input.strip():
-    with st.spinner("回答生成中…お待ちください。"):
-        suggested_qas = find_top_similar_questions(user_input, faq_df, top_n=1)
-        if suggested_qas:
-            matched_q, matched_a = suggested_qas[0]
-        else:
-            matched_q, matched_a = "該当なし", "申し訳ありませんが、該当するFAQが見つかりませんでした。"
-        answer = generate_response(user_input, matched_a, matched_q)
-    st.session_state.chat_log.insert(0, (user_input, answer))
-    st.session_state.user_input = ""  # 入力欄クリア
-    st.experimental_rerun()
+with st.form(key="chat_form", clear_on_submit=True):
+    user_input = st.text_input("質問をどうぞ：", key="user_input")
+    submitted = st.form_submit_button("送信")
+
+    if submitted and user_input:
+        if not is_valid_input(user_input):
+            st.session_state.chat_log.insert(0, (user_input, "エラー：入力が不正です。"))
+            st.experimental_rerun()
+        similar_q, similar_a = find_similar_question(user_input, faq_df)
+        with st.spinner("回答生成中…お待ちください。"):
+            answer = generate_response(similar_q, similar_a, user_input)
+        st.session_state.chat_log.insert(0, (user_input, answer))
+        st.experimental_rerun()
 
 # チャット履歴表示
 st.subheader("📜 チャット履歴")
