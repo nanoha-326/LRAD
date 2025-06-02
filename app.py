@@ -16,30 +16,7 @@ st.set_page_config(page_title="LRADサポートチャット", layout="centered")
 # ──────────────────────────────
 openai.api_key = st.secrets.OpenAIAPI.openai_api_key
 
-def inject_custom_css(body_font_size: str = "16px"):
-    # ここは主に本文のフォントサイズ調整用
-    st.markdown(
-        f"""
-        <style>
-        html, body, .stApp {{
-            font-size: {body_font_size} !important;
-        }}
-        p > small {{
-            font-size: calc({body_font_size} * 0.9) !important;
-        }}
-        div[data-testid="text-input-label"] > div {{
-            font-size: {body_font_size} !important;
-        }}
-        input[type="text"], input[type="text"]::placeholder {{
-            font-size: {body_font_size} !important;
-        }}
-        button[kind], span, label {{
-            font-size: {body_font_size} !important;
-        }}
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
+
 
 
 # ──────────────────────────────
@@ -173,6 +150,30 @@ st.markdown("### 💡 よくある質問（ランダム表示）")
 display_random_common_faqs(common_faq_df, n=3)
 
 st.divider()
+def inject_custom_css(body_font_size: str = "16px"):
+    # ここは主に本文のフォントサイズ調整用
+    st.markdown(
+        f"""
+        <style>
+        html, body, .stApp {{
+            font-size: {body_font_size} !important;
+        }}
+        p > small {{
+            font-size: calc({body_font_size} * 0.9) !important;
+        }}
+        div[data-testid="text-input-label"] > div {{
+            font-size: {body_font_size} !important;
+        }}
+        input[type="text"], input[type="text"]::placeholder {{
+            font-size: {body_font_size} !important;
+        }}
+        button[kind], span, label {{
+            font-size: {body_font_size} !important;
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
 
 # ──────────────────────────────
 # 入力フォーム
