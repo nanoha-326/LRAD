@@ -17,29 +17,13 @@ st.set_page_config(page_title="LRADサポートチャット", layout="centered")
 openai.api_key = st.secrets.OpenAIAPI.openai_api_key
 
 def inject_custom_css(body_font_size: str = "16px"):
-    base_px = int(body_font_size.replace("px", ""))
-    title_px = int(base_px * 1.6)
+    # ここは主に本文のフォントサイズ調整用
     st.markdown(
         f"""
         <style>
         html, body, .stApp {{
             font-size: {body_font_size} !important;
         }}
-        /* タイトル専用スタイル */
-        .custom-title {{
-            font-size: {title_px}px !important;
-            font-weight: bold !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            line-height: 1.2 !important;
-        }}
-        /* サブタイトル */
-        .custom-subtitle {{
-            font-size: {int(title_px*0.8)}px !important;
-            font-weight: bold !important;
-            margin-top: 1rem !important;
-        }}
-        /* 本文小サイズ */
         p > small {{
             font-size: calc({body_font_size} * 0.9) !important;
         }}
@@ -143,7 +127,7 @@ def generate_response(user_q, ref_q, ref_a):
     return res.choices[0].message.content.strip()
 
 # ──────────────────────────────
-# セッションステート
+# セッションステート初期化
 # ──────────────────────────────
 if "chat_log" not in st.session_state:
     st.session_state.chat_log = []
@@ -152,17 +136,16 @@ if "chat_log" not in st.session_state:
 st.sidebar.title("⚙️ 表示設定")
 font_size = st.sidebar.selectbox("文字サイズを選んでください", ["小", "中", "大"])
 
-font_size_map = {"小": "14px", "中": "18px", "大": "24px"}
+font_size_map = {"小": 14, "中": 18, "大": 24}  # px単位（intにしておく）
 img_width_map = {"小": 60, "中": 80, "大": 110}
 
-selected_font = font_size_map[font_size]
+selected_font_px = font_size_map[font_size]
 selected_img = img_width_map[font_size]
 
-inject_custom_css(selected_font)
+# 本文のフォントサイズのみCSSで調整
+inject_custom_css(f"{selected_font_px}px")
 
-# ──────────────────────────────
-# 画像Base64取得
-# ──────────────────────────────
+# 画像Base64
 def get_base64_image(path):
     with open(path, "rb") as img_file:
         return base64.b64encode(img_file.read()).decode()
@@ -170,13 +153,15 @@ def get_base64_image(path):
 image_base64 = get_base64_image("LRADimg.png")
 
 # ──────────────────────────────
-# タイトル表示（カスタムCSS利用）
+# タイトル表示 (style属性でサイズ指定)
 # ──────────────────────────────
+title_size_px = int(selected_font_px * 1.6)
+
 st.write(
     f"""
     <div style="display:flex; align-items:center;">
         <img src="data:image/png;base64,{image_base64}" width="{selected_img}" style="margin-right:10px;">
-        <h1 class="custom-title">LRADサポートチャット</h1>
+        <h1 style="font-size:{title_size_px}px; font-weight:bold; margin:0;">LRADサポートチャット</h1>
     </div>
     """,
     unsafe_allow_html=True,
