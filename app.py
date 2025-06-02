@@ -17,22 +17,22 @@ st.set_page_config(page_title="LRADサポートチャット", layout="centered")
 openai.api_key = st.secrets.OpenAIAPI.openai_api_key
 
 # ──────────────────────────────
-# CSS注入（文字サイズ反映）
+# CSS注入（文字サイズとラベル・キャプション対応）
 # ──────────────────────────────
 def inject_custom_css(selected_size):
     st.markdown(
         f"""
         <style>
-        /* caption テキストのサイズ変更 */
-        .st-emotion-cache-1aehpvj, .st-emotion-cache-16txtl3 {{
+        /* st.captionの文字サイズ */
+        .stCaption, .css-ffhzg2 p, .stTextInput > label {{
             font-size: {selected_size} !important;
         }}
-        /* text_input ラベルと入力文字サイズ */
-        label, .stTextInput > div > div > input {{
+        /* text_input 入力欄の文字サイズ */
+        .stTextInput > div > div > input {{
             font-size: {selected_size} !important;
         }}
-        /* 入力欄の文字サイズ */
-        input[type="text"] {{
+        /* 入力欄内のプレースホルダー文字サイズ */
+        ::placeholder {{
             font-size: {selected_size} !important;
         }}
         </style>
@@ -142,7 +142,7 @@ img_width_map = {"小": 60, "中": 80, "大": 110}
 selected_font = font_size_map[font_size]
 selected_img  = img_width_map[font_size]
 
-inject_custom_css(font_size_map[font_size])
+inject_custom_css(selected_font)
 
 # ──────────────────────────────
 # ヘッダー画像とタイトル
@@ -155,7 +155,7 @@ image_base64 = get_base64_image("LRADimg.png")
 
 st.markdown(
     f"""
-  <div style="display:flex; align-items:center;" class="chat-text">
+    <div style="display:flex; align-items:center;" class="chat-text">
         <img src="data:image/png;base64,{image_base64}"
              width="{selected_img}" style="margin-right:10px;">
         <h1 style="margin:0;">LRADサポートチャット</h1>
