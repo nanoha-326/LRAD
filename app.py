@@ -19,34 +19,47 @@ openai.api_key = st.secrets.OpenAIAPI.openai_api_key
 # ──────────────────────────────
 # CSS注入（文字サイズとラベル・キャプション対応）
 # ──────────────────────────────
-def inject_custom_css(font_size_px: str):
+def inject_custom_css(body_font_size: str = "16px", title_font_size: str = "24px"):
     st.markdown(
         f"""
         <style>
-        /* ① アプリ全体のベース文字サイズを上書き */
+        /* 全体の基本フォントサイズ（本文など） */
         html, body, .stApp {{
-            font-size: {font_size_px} !important;
+            font-size: {body_font_size} !important;
         }}
 
-        /* ② caption は <p><small>…</small></p> 構造なので small を指定 */
+        /* タイトル（st.title）は h1 → div[data-testid="stMarkdownContainer"] h1 で選択 */
+        div[data-testid="stMarkdownContainer"] h1 {{
+            font-size: {title_font_size} !important;
+            line-height: 1.4;
+        }}
+
+        /* サブタイトルや見出しレベル h2, h3 にも段階的に調整（任意） */
+        div[data-testid="stMarkdownContainer"] h2 {{
+            font-size: calc({title_font_size} * 0.8) !important;
+        }}
+        div[data-testid="stMarkdownContainer"] h3 {{
+            font-size: calc({title_font_size} * 0.7) !important;
+        }}
+
+        /* キャプション */
         p > small {{
-            font-size: {font_size_px} !important;
+            font-size: calc({body_font_size} * 0.9) !important;
         }}
 
-        /* ③ text_input ラベル (data-testid) と入力欄内テキスト */
+        /* 入力欄ラベル */
         div[data-testid="text-input-label"] > div {{
-            font-size: {font_size_px} !important;
-        }}
-        input[type="text"] {{
-            font-size: {font_size_px} !important;
-        }}
-        input[type="text"]::placeholder {{
-            font-size: {font_size_px} !important;
+            font-size: {body_font_size} !important;
         }}
 
-        /* ④ ボタン文字・その他小要素も揃える */
+        /* 入力欄テキストとプレースホルダ */
+        input[type="text"], input[type="text"]::placeholder {{
+            font-size: {body_font_size} !important;
+        }}
+
+        /* ボタン・ラベルなど補足要素 */
         button[kind], span, label {{
-            font-size: {font_size_px} !important;
+            font-size: {body_font_size} !important;
         }}
         </style>
         """,
