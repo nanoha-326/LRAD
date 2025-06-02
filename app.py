@@ -5,19 +5,19 @@ import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 import os
 
-# ✅ これを最初に書く
+# --- ページ設定 ---
 st.set_page_config(page_title="LRADサポートチャット", layout="centered")
 
-# --- API KEY ---
+# --- APIキー ---
 openai.api_key = st.secrets.OpenAIAPI.openai_api_key 
 
-# --- OpenAI 埋め込み取得 ---
+# --- 埋め込み取得関数 ---
 def get_embedding(text, model="text-embedding-3-small"):
     text = text.replace("\n", " ")
     response = openai.embeddings.create(input=[text], model=model)
     return np.array(response.data[0].embedding)
 
-# --- FAQ 読み込み（埋め込み自動付与） ---
+# --- FAQ読み込み（埋め込み付き） ---
 @st.cache_data
 def load_faq(path="faq.csv", embed_path="faq_with_embeddings.csv"):
     if os.path.exists(embed_path):
@@ -32,7 +32,7 @@ def load_faq(path="faq.csv", embed_path="faq_with_embeddings.csv"):
 
 faq_df = load_faq()
 
-# --- 類似質問を検索 ---
+# --- 類似質問検索 ---
 def find_top_similar_questions(user_input, faq_df, top_n=5):
     if len(user_input.strip()) < 2:
         return []
@@ -52,36 +52,40 @@ def generate_response(user_input, matched_answer, matched_question):
 回答: {matched_answer}
 """
     response = openai.chat.completions.create(
-        model="gpt-4",
+        model="gpt-3.5-turbo",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.3
     )
     return response.choices[0].message.content.strip()
 
-# --- UI ---
-st.title("🤖 LRADサポートチャット")
-
+# --- セッションステート初期化 ---
 if "chat_log" not in st.session_state:
     st.session_state.chat_log = []
 
-# --- 入力フォーム ---
-user_input = st.text_input("質問をどうぞ：", key="user_input")
-submitted = st.button("送信")
+if "user_input" not in st.session_state:
+    st.session_state.user_input = ""
 
-# --- 検索候補表示 ---
+# --- UI ---
+st.title("🤖 LRADサポートチャット")
+
+# 入力欄（即時反応）
+user_input = st.text_input("質問をどうぞ：", value=st.session_state.user_input, key="user_input")
+
+# 類似質問の即時表示
 if user_input:
     st.subheader("🔍 入力に基づくおすすめの質問")
-
     suggested_qas = find_top_similar_questions(user_input, faq_df)
     for i, (q, a) in enumerate(suggested_qas):
+        # ボタン押下で回答生成・チャットログ追加・画面再読み込み
         if st.button(f"{i+1}. {q}"):
             with st.spinner("回答生成中…お待ちください。"):
                 answer = generate_response(q, a, q)
             st.session_state.chat_log.insert(0, (q, answer))
-            st.rerun()
+            st.session_state.user_input = ""  # 入力欄クリア
+            st.experimental_rerun()
 
-# --- ユーザーから送信された場合の処理 ---
-if submitted and user_input:
+# 送信ボタンで直接質問送信
+if st.button("送信") and user_input.strip():
     with st.spinner("回答生成中…お待ちください。"):
         suggested_qas = find_top_similar_questions(user_input, faq_df, top_n=1)
         if suggested_qas:
@@ -90,9 +94,10 @@ if submitted and user_input:
             matched_q, matched_a = "該当なし", "申し訳ありませんが、該当するFAQが見つかりませんでした。"
         answer = generate_response(user_input, matched_a, matched_q)
     st.session_state.chat_log.insert(0, (user_input, answer))
-    st.session_state["user_input"] = ""
+    st.session_state.user_input = ""  # 入力欄クリア
+    st.experimental_rerun()
 
-# --- チャットログ表示 ---
+# チャット履歴表示
 st.subheader("📜 チャット履歴")
 for q, a in st.session_state.chat_log:
     st.markdown(f"**🧑‍💻 質問:** {q}")
