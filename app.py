@@ -16,9 +16,6 @@ st.set_page_config(page_title="LRADサポートチャット", layout="centered")
 # ──────────────────────────────
 openai.api_key = st.secrets.OpenAIAPI.openai_api_key
 
-# ──────────────────────────────
-# フォントサイズ
-# ──────────────────────────────
 def inject_custom_css(body_font_size: str = "16px"):
     title_font_size = f"calc({body_font_size} * 1.6)"
     st.markdown(
@@ -53,7 +50,6 @@ def inject_custom_css(body_font_size: str = "16px"):
         """,
         unsafe_allow_html=True
     )
-
 
 # ──────────────────────────────
 # ユーティリティ
@@ -92,8 +88,8 @@ def load_faq_all(path="faq_all.csv", cached="faq_all_with_embed.csv"):
 
 @st.cache_data(show_spinner=False)
 def load_faq_common(path="faq_common.csv"):
-    df = pd.read_csv(path, encoding="utf-8-sig")  # ←ここ重要！
-    df.columns = df.columns.str.strip()  # ← 列名の空白除去
+    df = pd.read_csv(path, encoding="utf-8-sig")
+    df.columns = df.columns.str.strip()
     return df
 
 faq_df = load_faq_all()
@@ -105,12 +101,9 @@ common_faq_df = load_faq_common()
 def display_random_common_faqs(common_faq_df, n=3):
     sampled = common_faq_df.sample(n)
     for i, row in enumerate(sampled.itertuples(), 1):
-        question = getattr(row, "質問", "（質問が不明です）")
-        answer = getattr(row, "回答", "（回答が不明です）")
-        st.markdown(f"**❓ {row[1]}**")  # row[0] = 質問
-        st.markdown(f"🅰️ {row[2]}")
+        st.markdown(f"**❓ {row.質問}**")
+        st.markdown(f"🅰️ {row.回答}")
         st.markdown("---")
-
 
 # ──────────────────────────────
 # 類似質問検索
@@ -145,21 +138,22 @@ def generate_response(user_q, ref_q, ref_a):
 # ──────────────────────────────
 if "chat_log" not in st.session_state:
     st.session_state.chat_log = []
-    
+
+# ──────────────────────────────
 # サイドバーで文字サイズを選択
+# ──────────────────────────────
 st.sidebar.title("⚙️ 表示設定")
 font_size = st.sidebar.selectbox("文字サイズを選んでください", ["小", "中", "大"])
-
-# ❶ サイドバー選択肢 & マップ
 font_size_map = {"小": "14px", "中": "18px", "大": "24px"}
-img_width_map = {"小": 60, "中": 80, "大": 110}   # ← 好みで調整
+img_width_map = {"小": 60, "中": 80, "大": 110}
 
 selected_font = font_size_map[font_size]
-selected_img  = img_width_map[font_size]
+selected_img = img_width_map[font_size]
 
 inject_custom_css(selected_font)
+
 # ──────────────────────────────
-# UI描画　LRAD装置画像あり
+# タイトル表示（画像 + カスタムスタイル）
 # ──────────────────────────────
 def get_base64_image(path):
     with open(path, "rb") as img_file:
@@ -179,13 +173,16 @@ st.markdown(
 
 st.caption("※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。")
 
-# よくある質問（CSV② からランダム）
+# ──────────────────────────────
+# よくある質問表示
+# ──────────────────────────────
 st.markdown("### 💡 よくある質問（ランダム表示）")
-display_random_common_faqs(common_faq_df, n=3) 
-
+display_random_common_faqs(common_faq_df, n=3)
 st.divider()
 
-# 入力フォーム
+# ──────────────────────────────
+# ユーザー質問フォーム
+# ──────────────────────────────
 with st.form(key="chat_form", clear_on_submit=True):
     user_q = st.text_input("質問をどうぞ：")
     send = st.form_submit_button("送信")
@@ -203,7 +200,9 @@ if send and user_q:
         st.session_state.chat_log.insert(0, (user_q, answer))
         st.experimental_rerun()
 
+# ──────────────────────────────
 # チャット履歴
+# ──────────────────────────────
 if st.session_state.chat_log:
     st.subheader("📜 チャット履歴")
     for q, a in st.session_state.chat_log:
