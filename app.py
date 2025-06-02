@@ -114,7 +114,7 @@ st.title("🤖 LRADサポートチャット")
 
 # よくある質問（CSV② からランダム）
 st.markdown("### 💡 よくある質問（ランダム表示）")
-show_random_faq(common_faq_df, n=3)
+display_random_common_faqs(common_faq_df, n=3) 
 
 st.divider()
 
