@@ -131,6 +131,10 @@ st.sidebar.title("⚙️ 表示設定")
 font_size = st.sidebar.selectbox("文字サイズを選んでください", ["小", "中", "大"])
 font_size_map = {"小": "14px", "中": "18px", "大": "24px"}
 img_width_map = {"小": 60, "中": 80, "大": 110}  
+
+selected_font = font_size_map[font_size]
+selected_img  = img_width_map[font_size]
+
 inject_custom_css(font_size_map[font_size])
 
 # ──────────────────────────────
