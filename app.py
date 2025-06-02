@@ -65,9 +65,8 @@ if "chat_log" not in st.session_state:
     st.session_state.chat_log = []
 
 # --- 入力フォーム ---
-with st.form(key="chat_form", clear_on_submit=True):
-    user_input = st.text_input("質問をどうぞ：", key="user_input")
-    submitted = st.form_submit_button("送信")
+user_input = st.text_input("質問をどうぞ：", key="user_input")
+submitted = st.button("送信")
 
 # --- 検索候補表示 ---
 if user_input:
