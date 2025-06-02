@@ -17,21 +17,21 @@ st.set_page_config(page_title="LRADサポートチャット", layout="centered")
 openai.api_key = st.secrets.OpenAIAPI.openai_api_key
 
 # ──────────────────────────────
-# CSS注入（文字サイズとラベル・キャプション対応）
+# CSS注入（本文の文字サイズのみ変更）
 # ──────────────────────────────
 def inject_custom_css(selected_size):
     st.markdown(
         f"""
         <style>
-        /* st.captionの文字サイズ */
-        .stCaption, .css-ffhzg2 p, .stTextInput > label {{
+        /* 本文のテキスト用 */
+        .chat-text, .stCaption, .css-ffhzg2 p, .stTextInput > label {{
             font-size: {selected_size} !important;
         }}
-        /* text_input 入力欄の文字サイズ */
+        /* 入力欄の文字サイズ */
         .stTextInput > div > div > input {{
             font-size: {selected_size} !important;
         }}
-        /* 入力欄内のプレースホルダー文字サイズ */
+        /* プレースホルダー文字サイズ */
         ::placeholder {{
             font-size: {selected_size} !important;
         }}
@@ -41,7 +41,7 @@ def inject_custom_css(selected_size):
     )
 
 # ──────────────────────────────
-# ユーティリティ
+# ユーティリティ関数
 # ──────────────────────────────
 def get_embedding(text, model="text-embedding-3-small"):
     text = text.replace("\n", " ")
@@ -61,7 +61,7 @@ def is_valid_input(text: str) -> bool:
     return True
 
 # ──────────────────────────────
-# CSV読込み
+# CSV読み込み
 # ──────────────────────────────
 @st.cache_data(show_spinner=False)
 def load_faq_all(path="faq_all.csv", cached="faq_all_with_embed.csv"):
@@ -85,7 +85,7 @@ faq_df = load_faq_all()
 common_faq_df = load_faq_common()
 
 # ──────────────────────────────
-# FAQ表示（サイズ対応）
+# FAQ表示（本文用classを付与）
 # ──────────────────────────────
 def display_random_common_faqs(common_faq_df, n=3):
     sampled = common_faq_df.sample(n)
@@ -126,7 +126,7 @@ def generate_response(user_q, ref_q, ref_a):
     return res.choices[0].message.content.strip()
 
 # ──────────────────────────────
-# セッションステート
+# セッションステート初期化
 # ──────────────────────────────
 if "chat_log" not in st.session_state:
     st.session_state.chat_log = []
@@ -137,15 +137,15 @@ if "chat_log" not in st.session_state:
 st.sidebar.title("⚙️ 表示設定")
 font_size = st.sidebar.selectbox("文字サイズを選んでください", ["小", "中", "大"])
 font_size_map = {"小": "14px", "中": "18px", "大": "24px"}
-img_width_map = {"小": 60, "中": 80, "大": 110}  
+img_width_map = {"小": 60, "中": 80, "大": 110}
 
 selected_font = font_size_map[font_size]
-selected_img  = img_width_map[font_size]
+selected_img = img_width_map[font_size]
 
 inject_custom_css(selected_font)
 
 # ──────────────────────────────
-# ヘッダー画像とタイトル
+# ヘッダー画像とタイトル（タイトルは固定サイズ）
 # ──────────────────────────────
 def get_base64_image(path):
     with open(path, "rb") as img_file:
@@ -155,10 +155,10 @@ image_base64 = get_base64_image("LRADimg.png")
 
 st.markdown(
     f"""
-    <div style="display:flex; align-items:center;" class="chat-text">
+    <div style="display:flex; align-items:center;" class="chat-header">
         <img src="data:image/png;base64,{image_base64}"
-             width="{selected_img}" style="margin-right:10px;">
-        <h1 style="margin:0;">LRADサポートチャット</h1>
+             width="80px" style="margin-right:10px;">
+        <h1 style="margin:0; font-size:32px; font-weight:bold;">LRADサポートチャット</h1>
     </div>
     """,
     unsafe_allow_html=True
@@ -195,7 +195,7 @@ if send and user_q:
         st.experimental_rerun()
 
 # ──────────────────────────────
-# チャット履歴
+# チャット履歴表示
 # ──────────────────────────────
 if st.session_state.chat_log:
     st.subheader("📜 チャット履歴")
