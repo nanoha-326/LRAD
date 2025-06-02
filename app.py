@@ -16,6 +16,9 @@ st.set_page_config(page_title="LRADサポートチャット", layout="centered")
 # ──────────────────────────────
 openai.api_key = st.secrets.OpenAIAPI.openai_api_key
 
+# ──────────────────────────────
+# フォントサイズ
+# ──────────────────────────────
 def inject_custom_css(body_font_size: str = "16px"):
     title_font_size = f"calc({body_font_size} * 1.6)"
     st.markdown(
@@ -168,7 +171,7 @@ st.markdown(
     f"""
     <div style="display:flex; align-items:center;">
         <img src="data:image/png;base64,{image_base64}" width="{selected_img}" style="margin-right:10px;">
-        <h1>LRADサポートチャット</h1>
+        <span style="font-size: calc({selected_font} * 1.6); font-weight: bold;">LRADサポートチャット</span>
     </div>
     """,
     unsafe_allow_html=True
