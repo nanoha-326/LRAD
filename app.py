@@ -16,31 +16,29 @@ st.set_page_config(page_title="LRADサポートチャット", layout="centered")
 # ──────────────────────────────
 openai.api_key = st.secrets.OpenAIAPI.openai_api_key
 
-def inject_custom_css(body_font_size: str = "16px"):
-    # ここは主に本文のフォントサイズ調整用
+# ──────────────────────────────
+# CSS注入（文字サイズとラベル・キャプション対応）
+# ──────────────────────────────
+def inject_custom_css(selected_size):
     st.markdown(
         f"""
         <style>
-        html, body, .stApp {{
-            font-size: {body_font_size} !important;
+        /* st.captionの文字サイズ */
+        .stCaption, .css-ffhzg2 p, .stTextInput > label {{
+            font-size: {selected_size} !important;
         }}
-        p > small {{
-            font-size: calc({body_font_size} * 0.9) !important;
+        /* text_input 入力欄の文字サイズ */
+        .stTextInput > div > div > input {{
+            font-size: {selected_size} !important;
         }}
-        div[data-testid="text-input-label"] > div {{
-            font-size: {body_font_size} !important;
-        }}
-        input[type="text"], input[type="text"]::placeholder {{
-            font-size: {body_font_size} !important;
-        }}
-        button[kind], span, label {{
-            font-size: {body_font_size} !important;
+        /* 入力欄内のプレースホルダー文字サイズ */
+        ::placeholder {{
+            font-size: {selected_size} !important;
         }}
         </style>
         """,
         unsafe_allow_html=True
     )
-
 
 # ──────────────────────────────
 # ユーティリティ
@@ -87,16 +85,17 @@ faq_df = load_faq_all()
 common_faq_df = load_faq_common()
 
 # ──────────────────────────────
-# ランダムFAQ表示
+# FAQ表示（サイズ対応）
 # ──────────────────────────────
 def display_random_common_faqs(common_faq_df, n=3):
     sampled = common_faq_df.sample(n)
     for i, row in enumerate(sampled.itertuples(), 1):
         question = getattr(row, "質問", "（質問が不明です）")
         answer = getattr(row, "回答", "（回答が不明です）")
-        st.markdown(f"**❓ {question}**")
-        st.markdown(f"🅰️ {answer}")
-        st.markdown("---")
+        st.markdown(
+            f'<div class="chat-text"><b>❓ {question}</b><br>🅰️ {answer}</div><hr>',
+            unsafe_allow_html=True
+        )
 
 # ──────────────────────────────
 # 類似質問検索
@@ -127,47 +126,49 @@ def generate_response(user_q, ref_q, ref_a):
     return res.choices[0].message.content.strip()
 
 # ──────────────────────────────
-# セッションステート初期化
+# セッションステート
 # ──────────────────────────────
 if "chat_log" not in st.session_state:
     st.session_state.chat_log = []
 
-# サイドバーで文字サイズを選択
+# ──────────────────────────────
+# サイドバー：文字サイズ選択とCSS注入
+# ──────────────────────────────
 st.sidebar.title("⚙️ 表示設定")
 font_size = st.sidebar.selectbox("文字サイズを選んでください", ["小", "中", "大"])
+font_size_map = {"小": "14px", "中": "18px", "大": "24px"}
+img_width_map = {"小": 60, "中": 80, "大": 110}  
 
-font_size_map = {"小": 14, "中": 18, "大": 24}  # px単位（intにしておく）
-img_width_map = {"小": 60, "中": 80, "大": 110}
+selected_font = font_size_map[font_size]
+selected_img  = img_width_map[font_size]
 
-selected_font_px = font_size_map[font_size]
-selected_img = img_width_map[font_size]
+inject_custom_css(selected_font)
 
-# 本文のフォントサイズのみCSSで調整
-inject_custom_css(f"{selected_font_px}px")
-
-# 画像Base64（画像をファイルパスから直接表示に変更してもOK）
+# ──────────────────────────────
+# ヘッダー画像とタイトル
+# ──────────────────────────────
 def get_base64_image(path):
     with open(path, "rb") as img_file:
         return base64.b64encode(img_file.read()).decode()
 
 image_base64 = get_base64_image("LRADimg.png")
 
-# ──────────────────────────────
-# タイトル表示 (Streamlit標準関数でサイズ切替)
-# ──────────────────────────────
-col1, col2 = st.columns([selected_img, 10])
-with col1:
-    st.image("LRADimg.png", width=selected_img)
-with col2:
-    if selected_font_px >= 22:
-        st.title("LRADサポートチャット")
-    elif selected_font_px >= 16:
-        st.header("LRADサポートチャット")
-    else:
-        st.subheader("LRADサポートチャット")
+st.markdown(
+    f"""
+    <div style="display:flex; align-items:center;" class="chat-text">
+        <img src="data:image/png;base64,{image_base64}"
+             width="{selected_img}" style="margin-right:10px;">
+        <h1 style="margin:0;">LRADサポートチャット</h1>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 st.caption("※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。")
 
+# ──────────────────────────────
+# よくある質問表示
+# ──────────────────────────────
 st.markdown("### 💡 よくある質問（ランダム表示）")
 display_random_common_faqs(common_faq_df, n=3)
 
@@ -195,4 +196,11 @@ if send and user_q:
 
 # ──────────────────────────────
 # チャット履歴
-# ───────────────────────
+# ──────────────────────────────
+if st.session_state.chat_log:
+    st.subheader("📜 チャット履歴")
+    for q, a in st.session_state.chat_log:
+        st.markdown(
+            f'<div class="chat-text"><b>🧑‍💻 質問:</b> {q}<br><b>🤖 回答:</b> {a}</div><hr>',
+            unsafe_allow_html=True
+        )
