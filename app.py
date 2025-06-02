@@ -131,23 +131,27 @@ st.caption("※このチャットボットはFAQとAIをもとに応答します
 st.sidebar.title("⚙️ 表示設定")
 font_size = st.sidebar.selectbox("文字サイズを選んでください", ["小", "中", "大"])
 
-# サイズに応じてCSSスタイルを変える
-font_size_map = {
-    "小": "14px",
-    "中": "18px",
-    "大": "24px"
-}
-selected_size = font_size_map[font_size]
+# ❶ サイドバー選択肢 & マップ
+font_size_map = {"小": "14px", "中": "18px", "大": "24px"}
+img_width_map = {"小": 60, "中": 80, "大": 110}   # ← 好みで調整
 
-# 表示テキスト（HTMLタグで直接サイズ指定）
-text_html = f"""
-<div style="font-size: {selected_size}; line-height: 1.6;">
-    これは選択されたサイズ（{font_size}）で表示されているテキストです。<br>
-    文字の大きさが実際に変化していることを確認できます。
-</div>
-"""
+selected_font = font_size_map[font_size]
+selected_img  = img_width_map[font_size]
 
-st.markdown(text_html, unsafe_allow_html=True)
+inject_custom_css(selected_font)
+
+# ❷ ヘッダー画像：width を選択値で指定
+st.markdown(
+    f"""
+    <div style="display:flex; align-items:center;" class="chat-text">
+        <img src="data:image/png;base64,{image_base64}"
+             width="{selected_img}" style="margin-right:10px;">
+        <h1 style="margin:0;">LRADサポートチャット</h1>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
 # よくある質問（CSV② からランダム）
 st.markdown("### 💡 よくある質問（ランダム表示）")
 display_random_common_faqs(common_faq_df, n=3) 
