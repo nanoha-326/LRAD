@@ -14,7 +14,7 @@ def load_faq(path="faq_with_embeddings.csv"):
     df['embedding'] = df['embedding'].apply(eval).apply(np.array)
     return df
 
-faq_df = load_faq()
+faq_df = load_faq("faq.csv")
 
 # --- OpenAI 埋め込み取得 ---
 def get_embedding(text, model="text-embedding-3-small"):
