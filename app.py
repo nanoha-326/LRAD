@@ -119,7 +119,7 @@ image_base64 = get_base64_image("LRADimg.png")
 st.markdown(
     f"""
     <div style="display:flex; align-items:center;">
-        <img src="data:image/png;base64,{image_base64}" width="60" style="margin-right:10px;">
+        <img src="data:image/png;base64,{image_base64}" width="80" style="margin-right:10px;">
         <h1 style="margin:0;">LRADサポートチャット</h1>
     </div>
     """,
