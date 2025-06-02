@@ -65,8 +65,8 @@ common_faq_df = load_faq_common()
 def show_random_faq(df, n=3):
     n = min(n, len(df))
     for i, row in df.sample(n).itertuples(index=False, name=None):
-        st.markdown(f"**❓ {row[0]}**")  # row[0] = 質問
-        st.markdown(f"🅰️ {row[1]}")
+        st.markdown(f"**❓ {question}**")
+        st.markdown(f"🅰️ {answer}")
         st.markdown("---")
 
 # ──────────────────────────────
