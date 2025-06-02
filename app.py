@@ -108,7 +108,7 @@ if "chat_log" not in st.session_state:
     st.session_state.chat_log = []
 
 # ──────────────────────────────
-# UI描画
+# UI描画　LRAD装置画像あり
 # ──────────────────────────────
 def get_base64_image(path):
     with open(path, "rb") as img_file:
@@ -119,7 +119,7 @@ image_base64 = get_base64_image("LRADimg.png")
 st.markdown(
     f"""
     <div style="display:flex; align-items:center;">
-        <img src="data:image/png;base64,{image_base64}" width="30" style="margin-right:10px;">
+        <img src="data:image/png;base64,{image_base64}" width="60" style="margin-right:10px;">
         <h1 style="margin:0;">LRADサポートチャット</h1>
     </div>
     """,
