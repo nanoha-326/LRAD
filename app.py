@@ -158,7 +158,7 @@ st.markdown(
     <div style="display:flex; align-items:center;" class="chat-header">
         <img src="data:image/png;base64,{image_base64}"
              width="80px" style="margin-right:10px;">
-        <h1 style="margin:0; font-size:32px; font-weight:bold;">LRADサポートチャット</h1>
+        <h1 style="margin:0; font-size:40px; font-weight:bold;">LRADサポートチャット</h1>
     </div>
     """,
     unsafe_allow_html=True
