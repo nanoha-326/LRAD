@@ -142,6 +142,3 @@ if st.session_state.chat_log:
         st.markdown(f"**🧑‍💻 質問:** {q}")
         st.markdown(f"**🤖 回答:** {a}")
         st.markdown("---")
-
-st.write("📋 データフレームの列名:", common_faq_df.columns.tolist())
-st.write("🧪 先頭5行:", common_faq_df.head())
