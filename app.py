@@ -62,12 +62,16 @@ common_faq_df = load_faq_common()
 # ──────────────────────────────
 # ランダムFAQ表示
 # ──────────────────────────────
-def show_random_faq(df, n=3):
-    n = min(n, len(df))
-    for i, row in df.sample(n).itertuples(index=False, name=None):
+def display_random_common_faqs(common_faq_df, n=3):
+    sampled = common_faq_df.sample(n)
+    st.markdown("### 💡 よくある質問（ランダム表示）")
+    for i, row in enumerate(sampled.itertuples(), 1):
+        question = getattr(row, "質問", "（質問が不明です）")
+        answer = getattr(row, "回答", "（回答が不明です）")
         st.markdown(f"**❓ {question}**")
         st.markdown(f"🅰️ {answer}")
         st.markdown("---")
+
 
 # ──────────────────────────────
 # 類似質問検索
