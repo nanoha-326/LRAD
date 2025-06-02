@@ -155,12 +155,13 @@ image_base64 = get_base64_image("LRADimg.png")
 st.markdown(
     f"""
     <div style="display:flex; align-items:center;">
-        <img src="data:image/png;base64,{image_base64}" width="80" style="margin-right:10px;">
-        <h1 style="margin:0;">LRADサポートチャット</h1>
+        <img src="data:image/png;base64,{image_base64}" width="{selected_img}" style="margin-right:10px;">
+        <h1>LRADサポートチャット</h1>
     </div>
     """,
     unsafe_allow_html=True
 )
+
 st.caption("※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。")
 
 # サイドバーで文字サイズを選択
