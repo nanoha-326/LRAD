@@ -145,7 +145,7 @@ selected_img = img_width_map[font_size]
 # 本文のフォントサイズのみCSSで調整
 inject_custom_css(f"{selected_font_px}px")
 
-# 画像Base64
+# 画像Base64（画像をファイルパスから直接表示に変更してもOK）
 def get_base64_image(path):
     with open(path, "rb") as img_file:
         return base64.b64encode(img_file.read()).decode()
@@ -153,19 +153,18 @@ def get_base64_image(path):
 image_base64 = get_base64_image("LRADimg.png")
 
 # ──────────────────────────────
-# タイトル表示 (style属性でサイズ指定)
+# タイトル表示 (Streamlit標準関数でサイズ切替)
 # ──────────────────────────────
-title_size_px = int(selected_font_px * 1.6)
-
-st.write(
-    f"""
-    <div style="display:flex; align-items:center;">
-        <img src="data:image/png;base64,{image_base64}" width="{selected_img}" style="margin-right:10px;">
-        <h1 style="font-size:{title_size_px}px; font-weight:bold; margin:0;">LRADサポートチャット</h1>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+col1, col2 = st.columns([selected_img, 10])
+with col1:
+    st.image("LRADimg.png", width=selected_img)
+with col2:
+    if selected_font_px >= 22:
+        st.title("LRADサポートチャット")
+    elif selected_font_px >= 16:
+        st.header("LRADサポートチャット")
+    else:
+        st.subheader("LRADサポートチャット")
 
 st.caption("※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。")
 
@@ -196,10 +195,4 @@ if send and user_q:
 
 # ──────────────────────────────
 # チャット履歴
-# ──────────────────────────────
-if st.session_state.chat_log:
-    st.subheader("📜 チャット履歴")
-    for q, a in st.session_state.chat_log:
-        st.markdown(f"**🧑‍💻 質問:** {q}")
-        st.markdown(f"**🤖 回答:** {a}")
-        st.markdown("---")
+# ───────────────────────
