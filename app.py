@@ -19,19 +19,30 @@ openai.api_key = st.secrets.OpenAIAPI.openai_api_key
 # ──────────────────────────────
 # CSS注入（文字サイズ反映）
 # ──────────────────────────────
-def inject_custom_css(font_size="18px"):
-    css = f"""
-    <style>
-    html, body, [class*="css"] {{
-        font-size: {font_size};
-    }}
-    .chat-text {{
-        font-size: {font_size};
-        line-height: 1.6;
-    }}
-    </style>
-    """
-    st.markdown(css, unsafe_allow_html=True)
+def inject_custom_css(font_size):
+    st.markdown(
+        f"""
+        <style>
+        .chat-text {{
+            font-size: {font_size} !important;
+        }}
+        /* st.caption() 対応 */
+        .stCaption {{
+            font-size: {font_size} !important;
+        }}
+        /* テキスト入力ラベル対応 */
+        label, .stTextInput label {{
+            font-size: {font_size} !important;
+        }}
+        /* テキスト入力内の文字サイズ（任意） */
+        input[type="text"] {{
+            font-size: {font_size} !important;
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
 
 # ──────────────────────────────
 # ユーティリティ
