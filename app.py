@@ -16,6 +16,42 @@ st.set_page_config(page_title="LRADサポートチャット", layout="centered")
 # ──────────────────────────────
 openai.api_key = st.secrets.OpenAIAPI.openai_api_key
 
+def inject_custom_css(body_font_size: str = "16px"):
+    title_font_size = f"calc({body_font_size} * 1.6)"
+    st.markdown(
+        f"""
+        <style>
+        html, body, .stApp {{
+            font-size: {body_font_size} !important;
+        }}
+        div[data-testid="stMarkdownContainer"] h1 {{
+            font-size: {title_font_size} !important;
+            line-height: 1.4;
+        }}
+        div[data-testid="stMarkdownContainer"] h2 {{
+            font-size: calc({title_font_size} * 0.8) !important;
+        }}
+        div[data-testid="stMarkdownContainer"] h3 {{
+            font-size: calc({title_font_size} * 0.7) !important;
+        }}
+        p > small {{
+            font-size: calc({body_font_size} * 0.9) !important;
+        }}
+        div[data-testid="text-input-label"] > div {{
+            font-size: {body_font_size} !important;
+        }}
+        input[type="text"], input[type="text"]::placeholder {{
+            font-size: {body_font_size} !important;
+        }}
+        button[kind], span, label {{
+            font-size: {body_font_size} !important;
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+
 # ──────────────────────────────
 # ユーティリティ
 # ──────────────────────────────
