@@ -176,18 +176,6 @@ selected_img  = img_width_map[font_size]
 
 inject_custom_css(selected_font)
 
-# ❷ ヘッダー画像：width を選択値で指定
-st.markdown(
-    f"""
-    <div style="display:flex; align-items:center;" class="chat-text">
-        <img src="data:image/png;base64,{image_base64}"
-             width="{selected_img}" style="margin-right:10px;">
-        <h1 style="margin:0;">LRADサポートチャット</h1>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
 # よくある質問（CSV② からランダム）
 st.markdown("### 💡 よくある質問（ランダム表示）")
 display_random_common_faqs(common_faq_df, n=3) 
