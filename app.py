@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 import os, random, re, unicodedata
+import base64
 
 # ──────────────────────────────
 # ページ設定
@@ -109,7 +110,23 @@ if "chat_log" not in st.session_state:
 # ──────────────────────────────
 # UI描画
 # ──────────────────────────────
-st.title("🤖 LRADサポートチャット")
+def get_base64_image(path):
+    with open(path, "rb") as img_file:
+        return base64.b64encode(img_file.read()).decode()
+
+image_base64 = get_base64_image("LRADimg.png")
+
+st.markdown(
+    f"""
+    <div style="display:flex; align-items:center;">
+        <img src="data:image/png;base64,{image_base64}" width="30" style="margin-right:10px;">
+        <h1 style="margin:0;">LRADサポートチャット</h1>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+
 
 # よくある質問（CSV② からランダム）
 st.markdown("### 💡 よくある質問（ランダム表示）")
