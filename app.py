@@ -52,7 +52,9 @@ def load_faq_all(path="faq_all.csv", cached="faq_all_with_embed.csv"):
 
 @st.cache_data(show_spinner=False)
 def load_faq_common(path="faq_common.csv"):
-    return pd.read_csv(path)
+    df = pd.read_csv(path, encoding="utf-8-sig")  # ←ここ重要！
+    df.columns = df.columns.str.strip()  # ← 列名の空白除去
+    return df
 
 faq_df = load_faq_all()
 common_faq_df = load_faq_common()
