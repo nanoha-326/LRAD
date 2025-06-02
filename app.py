@@ -5,6 +5,9 @@ import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 import os
 
+# ✅ これを最初に書く
+st.set_page_config(page_title="LRADサポートチャット", layout="centered")
+
 # --- API KEY ---
 openai.api_key = st.secrets.OpenAIAPI.openai_api_key 
 
@@ -56,7 +59,6 @@ def generate_response(user_input, matched_answer, matched_question):
     return response.choices[0].message.content.strip()
 
 # --- UI ---
-st.set_page_config(page_title="LRADサポートチャット", layout="centered")
 st.title("🤖 LRADサポートチャット")
 
 if "chat_log" not in st.session_state:
