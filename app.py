@@ -1,3 +1,5 @@
+検索候補表示版
+ーーーーーーーーーーーーーーーーーーーーーー
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -166,7 +168,7 @@ if suggestions:
 with st.form(key="chat_form", clear_on_submit=True):
     user_input = st.text_input("質問をどうぞ：",
                                key="user_input",
-                               placeholder="例：処理温度は何℃ですか？")
+                               placeholder="例：処理できるものはなんですか？")
     submitted = st.form_submit_button("送信")
 
     if submitted and user_input:
@@ -180,7 +182,6 @@ with st.form(key="chat_form", clear_on_submit=True):
             answer = generate_response(similar_q, similar_a, user_input)
 
         st.session_state.chat_log.insert(0, (user_input, answer))
-        st.session_state.user_input = ""  # 送信後は入力欄をクリア
         st.experimental_rerun()
 
 # ──────────────────────────────
