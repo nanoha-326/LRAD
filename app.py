@@ -68,8 +68,8 @@ def display_random_common_faqs(common_faq_df, n=3):
     for i, row in enumerate(sampled.itertuples(), 1):
         question = getattr(row, "質問", "（質問が不明です）")
         answer = getattr(row, "回答", "（回答が不明です）")
-        st.markdown(f"**❓ {row[0]}**")  # row[0] = 質問
-        st.markdown(f"🅰️ {row[1]}")
+        st.markdown(f"**❓ {row[1]}**")  # row[0] = 質問
+        st.markdown(f"🅰️ {row[2]}")
         st.markdown("---")
 
 
