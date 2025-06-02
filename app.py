@@ -19,26 +19,40 @@ openai.api_key = st.secrets.OpenAIAPI.openai_api_key
 # ──────────────────────────────
 # CSS注入（文字サイズとラベル・キャプション対応）
 # ──────────────────────────────
-def inject_custom_css(selected_size):
+def inject_custom_css(font_size_px: str):
     st.markdown(
         f"""
         <style>
-        /* st.captionの文字サイズ */
-        .stCaption, .css-ffhzg2 p, .stTextInput > label {{
-            font-size: {selected_size} !important;
+        /* ① アプリ全体のベース文字サイズを上書き */
+        html, body, .stApp {{
+            font-size: {font_size_px} !important;
         }}
-        /* text_input 入力欄の文字サイズ */
-        .stTextInput > div > div > input {{
-            font-size: {selected_size} !important;
+
+        /* ② caption は <p><small>…</small></p> 構造なので small を指定 */
+        p > small {{
+            font-size: {font_size_px} !important;
         }}
-        /* 入力欄内のプレースホルダー文字サイズ */
-        ::placeholder {{
-            font-size: {selected_size} !important;
+
+        /* ③ text_input ラベル (data-testid) と入力欄内テキスト */
+        div[data-testid="text-input-label"] > div {{
+            font-size: {font_size_px} !important;
+        }}
+        input[type="text"] {{
+            font-size: {font_size_px} !important;
+        }}
+        input[type="text"]::placeholder {{
+            font-size: {font_size_px} !important;
+        }}
+
+        /* ④ ボタン文字・その他小要素も揃える */
+        button[kind], span, label {{
+            font-size: {font_size_px} !important;
         }}
         </style>
         """,
         unsafe_allow_html=True
     )
+
 
 # ──────────────────────────────
 # ユーティリティ
