@@ -3,24 +3,31 @@ import openai
 import pandas as pd
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
+import os
 
 # --- API KEY ---
 openai.api_key = st.secrets.OpenAIAPI.openai_api_key 
-
-# --- FAQ 読み込み ---
-@st.cache_data
-def load_faq(path="faq_with_embeddings.csv"):
-    df = pd.read_csv(path)
-    df['embedding'] = df['embedding'].apply(eval).apply(np.array)
-    return df
-
-faq_df = load_faq("faq.csv")
 
 # --- OpenAI 埋め込み取得 ---
 def get_embedding(text, model="text-embedding-3-small"):
     text = text.replace("\n", " ")
     response = openai.embeddings.create(input=[text], model=model)
     return np.array(response.data[0].embedding)
+
+# --- FAQ 読み込み（埋め込み自動付与） ---
+@st.cache_data
+def load_faq(path="faq.csv", embed_path="faq_with_embeddings.csv"):
+    if os.path.exists(embed_path):
+        df = pd.read_csv(embed_path)
+        df['embedding'] = df['embedding'].apply(eval).apply(np.array)
+    else:
+        df = pd.read_csv(path)
+        with st.spinner("FAQにembeddingを付与中...（初回のみ）"):
+            df["embedding"] = df["質問"].apply(get_embedding)
+        df.to_csv(embed_path, index=False)
+    return df
+
+faq_df = load_faq()
 
 # --- 類似質問を検索 ---
 def find_top_similar_questions(user_input, faq_df, top_n=5):
