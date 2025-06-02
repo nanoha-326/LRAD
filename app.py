@@ -127,34 +127,32 @@ st.markdown(
 )
 st.caption("※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。")
 
-# --- サイドバーに設定項目を追加 ---
-with st.sidebar:
-    st.header("⚙️ 設定変更")
-    size_option = st.radio(
-        "文字サイズを選択",
-        ["小", "中", "大"],
-        index=1,  # デフォルトは「中」
-        horizontal=False
-    )
+# サイドバーで文字サイズを選択
+st.sidebar.title("⚙️ 表示設定")
+font_size = st.sidebar.selectbox("文字サイズを選んでください", ["小", "中", "大"])
 
-# --- 選択されたサイズに応じたCSSを反映 ---
-size_map = {
-    "小": 14,
-    "中": 18,
-    "大": 24
+# サイズに応じてCSSスタイルを変える
+font_size_map = {
+    "小": "14px",
+    "中": "18px",
+    "大": "22px"
 }
-font_px = size_map[size_option]
+selected_size = font_size_map[font_size]
 
+# カスタムCSSの適用
 st.markdown(
     f"""
     <style>
-    div.stChatMessage p {{
-        font-size: {font_px}px !important;
+    .custom-text {{
+        font-size: {selected_size};
     }}
     </style>
     """,
     unsafe_allow_html=True
 )
+
+# 実際に表示されるテキスト（クラス指定してサイズ変更）
+st.markdown('<div class="custom-text">これは選択された文字サイズで表示されるテキストです。</div>', unsafe_allow_html=True)
 
 # よくある質問（CSV② からランダム）
 st.markdown("### 💡 よくある質問（ランダム表示）")
