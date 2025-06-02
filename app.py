@@ -17,6 +17,23 @@ st.set_page_config(page_title="LRADサポートチャット", layout="centered")
 openai.api_key = st.secrets.OpenAIAPI.openai_api_key
 
 # ──────────────────────────────
+# CSS注入（文字サイズ反映）
+# ──────────────────────────────
+def inject_custom_css(font_size="18px"):
+    css = f"""
+    <style>
+    html, body, [class*="css"] {{
+        font-size: {font_size};
+    }}
+    .chat-text {{
+        font-size: {font_size};
+        line-height: 1.6;
+    }}
+    </style>
+    """
+    st.markdown(css, unsafe_allow_html=True)
+
+# ──────────────────────────────
 # ユーティリティ
 # ──────────────────────────────
 def get_embedding(text, model="text-embedding-3-small"):
@@ -53,25 +70,25 @@ def load_faq_all(path="faq_all.csv", cached="faq_all_with_embed.csv"):
 
 @st.cache_data(show_spinner=False)
 def load_faq_common(path="faq_common.csv"):
-    df = pd.read_csv(path, encoding="utf-8-sig")  # ←ここ重要！
-    df.columns = df.columns.str.strip()  # ← 列名の空白除去
+    df = pd.read_csv(path, encoding="utf-8-sig")
+    df.columns = df.columns.str.strip()
     return df
 
 faq_df = load_faq_all()
 common_faq_df = load_faq_common()
 
 # ──────────────────────────────
-# ランダムFAQ表示
+# FAQ表示（サイズ対応）
 # ──────────────────────────────
 def display_random_common_faqs(common_faq_df, n=3):
     sampled = common_faq_df.sample(n)
     for i, row in enumerate(sampled.itertuples(), 1):
         question = getattr(row, "質問", "（質問が不明です）")
         answer = getattr(row, "回答", "（回答が不明です）")
-        st.markdown(f"**❓ {row[1]}**")  # row[0] = 質問
-        st.markdown(f"🅰️ {row[2]}")
-        st.markdown("---")
-
+        st.markdown(
+            f'<div class="chat-text"><b>❓ {question}</b><br>🅰️ {answer}</div><hr>',
+            unsafe_allow_html=True
+        )
 
 # ──────────────────────────────
 # 類似質問検索
@@ -108,7 +125,15 @@ if "chat_log" not in st.session_state:
     st.session_state.chat_log = []
 
 # ──────────────────────────────
-# UI描画　LRAD装置画像あり
+# サイドバー：文字サイズ選択とCSS注入
+# ──────────────────────────────
+st.sidebar.title("⚙️ 表示設定")
+font_size = st.sidebar.selectbox("文字サイズを選んでください", ["小", "中", "大"])
+font_size_map = {"小": "14px", "中": "18px", "大": "24px"}
+inject_custom_css(font_size_map[font_size])
+
+# ──────────────────────────────
+# ヘッダー画像とタイトル
 # ──────────────────────────────
 def get_base64_image(path):
     with open(path, "rb") as img_file:
@@ -118,43 +143,27 @@ image_base64 = get_base64_image("LRADimg.png")
 
 st.markdown(
     f"""
-    <div style="display:flex; align-items:center;">
+    <div style="display:flex; align-items:center;" class="chat-text">
         <img src="data:image/png;base64,{image_base64}" width="80" style="margin-right:10px;">
         <h1 style="margin:0;">LRADサポートチャット</h1>
     </div>
     """,
     unsafe_allow_html=True
 )
+
 st.caption("※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。")
 
-# サイドバーで文字サイズを選択
-st.sidebar.title("⚙️ 表示設定")
-font_size = st.sidebar.selectbox("文字サイズを選んでください", ["小", "中", "大"])
-
-# サイズに応じてCSSスタイルを変える
-font_size_map = {
-    "小": "14px",
-    "中": "18px",
-    "大": "24px"
-}
-selected_size = font_size_map[font_size]
-
-# 表示テキスト（HTMLタグで直接サイズ指定）
-text_html = f"""
-<div style="font-size: {selected_size}; line-height: 1.6;">
-    これは選択されたサイズ（{font_size}）で表示されているテキストです。<br>
-    文字の大きさが実際に変化していることを確認できます。
-</div>
-"""
-
-st.markdown(text_html, unsafe_allow_html=True)
-# よくある質問（CSV② からランダム）
+# ──────────────────────────────
+# よくある質問表示
+# ──────────────────────────────
 st.markdown("### 💡 よくある質問（ランダム表示）")
-display_random_common_faqs(common_faq_df, n=3) 
+display_random_common_faqs(common_faq_df, n=3)
 
 st.divider()
 
+# ──────────────────────────────
 # 入力フォーム
+# ──────────────────────────────
 with st.form(key="chat_form", clear_on_submit=True):
     user_q = st.text_input("質問をどうぞ：")
     send = st.form_submit_button("送信")
@@ -172,10 +181,13 @@ if send and user_q:
         st.session_state.chat_log.insert(0, (user_q, answer))
         st.experimental_rerun()
 
+# ──────────────────────────────
 # チャット履歴
+# ──────────────────────────────
 if st.session_state.chat_log:
     st.subheader("📜 チャット履歴")
     for q, a in st.session_state.chat_log:
-        st.markdown(f"**🧑‍💻 質問:** {q}")
-        st.markdown(f"**🤖 回答:** {a}")
-        st.markdown("---")
+        st.markdown(
+            f'<div class="chat-text"><b>🧑‍💻 質問:</b> {q}<br><b>🤖 回答:</b> {a}</div><hr>',
+            unsafe_allow_html=True
+        )
