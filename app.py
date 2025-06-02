@@ -1,8 +1,11 @@
 import streamlit as st
-import openai
 import pandas as pd
 import numpy as np
+import datetime
+import re
+import unicodedata
 from sklearn.metrics.pairwise import cosine_similarity
+from openai import OpenAI
 
 # --- API KEY ---
 client = OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
