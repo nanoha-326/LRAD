@@ -130,6 +130,7 @@ if "chat_log" not in st.session_state:
 st.sidebar.title("⚙️ 表示設定")
 font_size = st.sidebar.selectbox("文字サイズを選んでください", ["小", "中", "大"])
 font_size_map = {"小": "14px", "中": "18px", "大": "24px"}
+img_width_map = {"小": 60, "中": 80, "大": 110}  
 inject_custom_css(font_size_map[font_size])
 
 # ──────────────────────────────
@@ -143,8 +144,9 @@ image_base64 = get_base64_image("LRADimg.png")
 
 st.markdown(
     f"""
-    <div style="display:flex; align-items:center;" class="chat-text">
-        <img src="data:image/png;base64,{image_base64}" width="80" style="margin-right:10px;">
+  <div style="display:flex; align-items:center;" class="chat-text">
+        <img src="data:image/png;base64,{image_base64}"
+             width="{selected_img}" style="margin-right:10px;">
         <h1 style="margin:0;">LRADサポートチャット</h1>
     </div>
     """,
