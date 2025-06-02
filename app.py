@@ -1,5 +1,3 @@
-検索候補表示版
-ーーーーーーーーーーーーーーーーーーーーーー
 import streamlit as st
 import pandas as pd
 import numpy as np
