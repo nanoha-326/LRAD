@@ -90,7 +90,7 @@ if submitted and user_input:
             matched_q, matched_a = "該当なし", "申し訳ありませんが、該当するFAQが見つかりませんでした。"
         answer = generate_response(user_input, matched_a, matched_q)
     st.session_state.chat_log.insert(0, (user_input, answer))
-    st.session_state.user_input = ""
+    st.session_state["user_input"] = ""
 
 # --- チャットログ表示 ---
 st.subheader("📜 チャット履歴")
