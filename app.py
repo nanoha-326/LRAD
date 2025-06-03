@@ -17,9 +17,10 @@ def inject_custom_css(selected_size):
       st.markdown(
         f"""
         <style>
-        .chat-text, .stCaption, .css-ffhzg2 p, .stTextInput > label,
-        .streamlit-expanderHeader, .streamlit-expanderContent {{
-            font-size: {selected_size} !important;
+        .streamlit-expanderContent, .streamlit-expanderContent p, .streamlit-expanderContent div {
+  font-size: {selected_size} !important;
+}
+
         }}
         .stTextInput > div > div > input {{
             font-size: {selected_size} !important;
