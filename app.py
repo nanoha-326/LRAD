@@ -12,7 +12,7 @@ st.set_page_config(page_title="LRADサポートチャット", layout="centered")
 # OpenAIキー設定
 client = OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
 
-# CSS注入（expanderタイトルと内容のフォントサイズ対応）
+# CSS注入（フォントサイズ制御）
 def inject_custom_css(selected_size):
     st.markdown(
         f"""
@@ -37,8 +37,6 @@ def inject_custom_css(selected_size):
         unsafe_allow_html=True
     )
 
-
-
 # Embedding取得
 def get_embedding(text, model="text-embedding-3-small"):
     text = text.replace("\n", " ")
@@ -58,7 +56,7 @@ def is_valid_input(text: str) -> bool:
         return False
     return True
 
-# CSV読み込み（FAQ全体）
+# FAQ読み込み
 @st.cache_data(show_spinner=False)
 def load_faq_all(path="faq_all.csv", cached="faq_all_with_embed.csv"):
     def parse_embedding(val):
@@ -83,7 +81,6 @@ def load_faq_all(path="faq_all.csv", cached="faq_all_with_embed.csv"):
         df["embedding"] = df["embedding"].apply(parse_embedding)
     return df
 
-# CSV読み込み（よくあるFAQ）
 @st.cache_data(show_spinner=False)
 def load_faq_common(path="faq_common.csv"):
     df = pd.read_csv(path, encoding="utf-8-sig")
@@ -93,20 +90,19 @@ def load_faq_common(path="faq_common.csv"):
 faq_df = load_faq_all()
 common_faq_df = load_faq_common()
 
-# よくあるFAQ表示（expanderで質問と回答を表示）
+# よくあるFAQ表示
 def display_common_faqs_with_expander(common_faq_df, n=3, font_size="18px"):
     sampled = common_faq_df.sample(n)
     for row in sampled.itertuples():
         question = getattr(row, "質問", "（質問が不明です）")
         answer = getattr(row, "回答", "（回答が不明です）")
         with st.expander(f"❓ {question}"):
-            # 回答のフォントサイズを明示的に指定
             st.markdown(
                 f'<div style="font-size: {font_size}; white-space: pre-wrap;">{answer}</div>',
                 unsafe_allow_html=True
             )
 
-# 類似質問検索
+# 類似検索
 def find_top_similar(q, df, k=1):
     if len(q.strip()) < 2:
         return None, None
@@ -151,7 +147,7 @@ def generate_response(user_q, ref_q, ref_a, history_summary=""):
 if "chat_log" not in st.session_state:
     st.session_state.chat_log = []
 
-# サイドバー設定
+# サイドバー
 st.sidebar.title("⚙️ 表示設定")
 font_size = st.sidebar.selectbox("文字サイズを選んでください", ["小", "中", "大"])
 font_size_map = {"小": "14px", "中": "18px", "大": "24px"}
@@ -162,7 +158,7 @@ selected_img = img_width_map[font_size]
 
 inject_custom_css(selected_font)
 
-# ヘッダー画像
+# ヘッダー画像表示
 def get_base64_image(path):
     with open(path, "rb") as img_file:
         return base64.b64encode(img_file.read()).decode()
@@ -182,7 +178,7 @@ st.markdown(
 
 st.caption("※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。")
 
-# よくある質問表示
+# よくあるFAQ表示
 st.markdown(f'<h3 style="font-size: {selected_font};">💡 よくある質問（クリックで回答表示）</h3>', unsafe_allow_html=True)
 display_common_faqs_with_expander(common_faq_df, n=5, font_size=selected_font)
 
@@ -209,11 +205,15 @@ if send and user_q:
             st.session_state.chat_log.pop()
         st.experimental_rerun()
 
-# チャット履歴表示
+# チャット履歴表示（フォントサイズ適用）
 if st.session_state.chat_log:
     st.subheader("📜 チャット履歴")
     for q, a in st.session_state.chat_log:
         st.markdown(
-            f'<div class="chat-text"><b>🧑‍💻 質問:</b> {q}<br><b>🤖 回答:</b> {a}</div><hr>',
+            f'''
+            <div class="chat-question"><b>🧑‍💻 質問:</b> {q}</div>
+            <div class="chat-answer"><b>🤖 回答:</b> {a}</div>
+            <hr>
+            ''',
             unsafe_allow_html=True
         )
