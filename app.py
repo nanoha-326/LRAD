@@ -32,13 +32,11 @@ def inject_custom_css(selected_size):
         ::placeholder {{
             font-size: {selected_size} !important;
         }}
-        summary {{
-            font-size: {selected_size} !important;
-        }}
         </style>
         """,
         unsafe_allow_html=True
     )
+
 # Embedding取得
 def get_embedding(text, model="text-embedding-3-small"):
     text = text.replace("\n", " ")
@@ -92,13 +90,14 @@ def load_faq_common(path="faq_common.csv"):
 faq_df = load_faq_all()
 common_faq_df = load_faq_common()
 
-# よくあるFAQ表示
-def display_common_faqs_with_expander(common_faq_df, n=3, font_size="18px"):
+# よくあるFAQ表示（完全自作UI）
+def display_common_faqs_custom_ui(common_faq_df, n=3, font_size="18px"):
     sampled = common_faq_df.sample(n)
-    for row in sampled.itertuples():
+    for i, row in enumerate(sampled.itertuples(), 1):
         question = getattr(row, "質問", "（質問が不明です）")
         answer = getattr(row, "回答", "（回答が不明です）")
-        with st.expander(f"❓ {question}"):
+        show = st.toggle(f"❓ {question}", key=f"faq_toggle_{i}")
+        if show:
             st.markdown(
                 f'<div style="font-size: {font_size}; white-space: pre-wrap;">{answer}</div>',
                 unsafe_allow_html=True
@@ -180,9 +179,9 @@ st.markdown(
 
 st.caption("※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。")
 
-# よくあるFAQ表示
+# よくあるFAQ表示（カスタムUI）
 st.markdown(f'<h3 style="font-size: {selected_font};">💡 よくある質問（クリックで回答表示）</h3>', unsafe_allow_html=True)
-display_common_faqs_with_expander(common_faq_df, n=5, font_size=selected_font)
+display_common_faqs_custom_ui(common_faq_df, n=5, font_size=selected_font)
 
 st.divider()
 
