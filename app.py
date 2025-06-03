@@ -17,39 +17,20 @@ def inject_custom_css(selected_size):
     st.markdown(
         f"""
         <style>
-        /* expanderタイトル部分（Streamlit 1.23以降対応例）*/
-        button[aria-expanded] > div:first-child {{
+        .chat-text, .chat-text b, .stCaption, .css-ffhzg2 p, .stTextInput > label {{
             font-size: {selected_size} !important;
         }}
-        /* 旧バージョン等に対応するための代替クラス */
-        .streamlit-expanderHeader, .st-expander > button > div {{
-            font-size: {selected_size} !important;
-        }}
-
-        /* expander内容 */
-        .streamlit-expanderContent, .streamlit-expanderContent p, .streamlit-expanderContent div {{
-            font-size: {selected_size} !important;
-        }}
-
-        /* 入力欄のフォントサイズ */
         .stTextInput > div > div > input {{
             font-size: {selected_size} !important;
         }}
-
         ::placeholder {{
             font-size: {selected_size} !important;
         }}
-
-        /* チャット履歴の質問・回答のフォントサイズ */
-        .chat-text {{
-            font-size: {selected_size} !important;
-            line-height: 1.4;
-        }}
-
         </style>
         """,
         unsafe_allow_html=True
     )
+
 
 # Embedding取得
 def get_embedding(text, model="text-embedding-3-small"):
