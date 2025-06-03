@@ -14,10 +14,11 @@ client = OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
 
 # CSS注入
 def inject_custom_css(selected_size):
-    st.markdown(
+      st.markdown(
         f"""
         <style>
-        .chat-text, .stCaption, .css-ffhzg2 p, .stTextInput > label {{
+        .chat-text, .stCaption, .css-ffhzg2 p, .stTextInput > label,
+        .streamlit-expanderHeader, .streamlit-expanderContent {{
             font-size: {selected_size} !important;
         }}
         .stTextInput > div > div > input {{
