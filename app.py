@@ -85,7 +85,7 @@ faq_df = load_faq_all()
 common_faq_df = load_faq_common()
 
 # FAQ表示
-def display_random_common_faqs(common_faq_df, n=3):
+def display_random_common_faqs(common_faq_df, n=1):
     sampled = common_faq_df.sample(n)
     for i, row in enumerate(sampled.itertuples(), 1):
         question = getattr(row, "質問", "（質問が不明です）")
