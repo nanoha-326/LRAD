@@ -3,29 +3,49 @@ from openai import OpenAI
 import pandas as pd
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
-import os, random, re, unicodedata, json
+import os, re, unicodedata, json
 import base64
 
 # ページ設定
 st.set_page_config(page_title="LRADサポートチャット", layout="centered")
 
-# OpenAIキー
+# OpenAIキー設定
 client = OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
 
-# CSS注入
+# CSS注入（expanderタイトルと内容のフォントサイズ対応）
 def inject_custom_css(selected_size):
     st.markdown(
         f"""
         <style>
+        /* expanderタイトル部分（Streamlit 1.23以降対応例）*/
+        button[aria-expanded] > div:first-child {{
+            font-size: {selected_size} !important;
+        }}
+        /* 旧バージョン等に対応するための代替クラス */
+        .streamlit-expanderHeader, .st-expander > button > div {{
+            font-size: {selected_size} !important;
+        }}
+
+        /* expander内容 */
         .streamlit-expanderContent, .streamlit-expanderContent p, .streamlit-expanderContent div {{
             font-size: {selected_size} !important;
         }}
+
+        /* 入力欄のフォントサイズ */
         .stTextInput > div > div > input {{
             font-size: {selected_size} !important;
         }}
+
         ::placeholder {{
             font-size: {selected_size} !important;
         }}
+
+        /* チャット履歴の質問・回答のフォントサイズ */
+        .chat-text {{
+            font-size: {selected_size} !important;
+            line-height: 1.4;
+        }}
+
         </style>
         """,
         unsafe_allow_html=True
@@ -50,7 +70,7 @@ def is_valid_input(text: str) -> bool:
         return False
     return True
 
-# CSV読み込み
+# CSV読み込み（FAQ全体）
 @st.cache_data(show_spinner=False)
 def load_faq_all(path="faq_all.csv", cached="faq_all_with_embed.csv"):
     def parse_embedding(val):
@@ -59,7 +79,7 @@ def load_faq_all(path="faq_all.csv", cached="faq_all_with_embed.csv"):
                 return np.array(json.loads(val))
             except Exception:
                 pass
-        elif isinstance(val, list) or isinstance(val, np.ndarray):
+        elif isinstance(val, (list, np.ndarray)):
             return np.array(val)
         return np.zeros(1536)
 
@@ -75,6 +95,7 @@ def load_faq_all(path="faq_all.csv", cached="faq_all_with_embed.csv"):
         df["embedding"] = df["embedding"].apply(parse_embedding)
     return df
 
+# CSV読み込み（よくあるFAQ）
 @st.cache_data(show_spinner=False)
 def load_faq_common(path="faq_common.csv"):
     df = pd.read_csv(path, encoding="utf-8-sig")
@@ -84,18 +105,18 @@ def load_faq_common(path="faq_common.csv"):
 faq_df = load_faq_all()
 common_faq_df = load_faq_common()
 
-# FAQ表示
-def display_common_faqs_with_expander(common_faq_df, n=3):
+# よくあるFAQ表示（expanderで質問と回答を表示）
+def display_common_faqs_with_expander(common_faq_df, n=3, font_size="18px"):
     sampled = common_faq_df.sample(n)
-    for i, row in enumerate(sampled.itertuples(), 1):
+    for row in sampled.itertuples():
         question = getattr(row, "質問", "（質問が不明です）")
         answer = getattr(row, "回答", "（回答が不明です）")
         with st.expander(f"❓ {question}"):
+            # 回答のフォントサイズを明示的に指定
             st.markdown(
-                f'<div style="font-size: {selected_font};">{answer}</div>',
+                f'<div style="font-size: {font_size}; white-space: pre-wrap;">{answer}</div>',
                 unsafe_allow_html=True
             )
-
 
 # 類似質問検索
 def find_top_similar(q, df, k=1):
@@ -164,7 +185,7 @@ st.markdown(
     f"""
     <div style="display:flex; align-items:center;" class="chat-header">
         <img src="data:image/png;base64,{image_base64}"
-             width="80px" style="margin-right:10px;">
+             width="{selected_img}px" style="margin-right:10px;">
         <h1 style="margin:0; font-size:40px; font-weight:bold;">LRADサポートチャット</h1>
     </div>
     """,
@@ -175,7 +196,7 @@ st.caption("※このチャットボットはFAQとAIをもとに応答します
 
 # よくある質問表示
 st.markdown(f'<h3 style="font-size: {selected_font};">💡 よくある質問（クリックで回答表示）</h3>', unsafe_allow_html=True)
-display_common_faqs_with_expander(common_faq_df, n=5)
+display_common_faqs_with_expander(common_faq_df, n=5, font_size=selected_font)
 
 st.divider()
 
@@ -195,7 +216,6 @@ if send and user_q:
             with st.spinner("回答生成中…"):
                 history_summary = summarize_chat_log(st.session_state.chat_log)
                 answer = generate_response(user_q, ref_q, ref_a, history_summary)
-        # ここでanswerが必ず定義されていることを確認
         st.session_state.chat_log.insert(0, (user_q, answer))
         if len(st.session_state.chat_log) > 100:
             st.session_state.chat_log.pop()
