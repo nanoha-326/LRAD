@@ -17,7 +17,13 @@ def inject_custom_css(selected_size):
     st.markdown(
         f"""
         <style>
-        .chat-text, .chat-text b, .stCaption, .css-ffhzg2 p, .stTextInput > label {{
+        .chat-question {{
+            font-size: {selected_size} !important;
+        }}
+        .chat-answer {{
+            font-size: {selected_size} !important;
+        }}
+        .stCaption, .css-ffhzg2 p, .stTextInput > label {{
             font-size: {selected_size} !important;
         }}
         .stTextInput > div > div > input {{
@@ -30,6 +36,7 @@ def inject_custom_css(selected_size):
         """,
         unsafe_allow_html=True
     )
+
 
 
 # Embedding取得
