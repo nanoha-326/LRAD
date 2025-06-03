@@ -65,7 +65,9 @@ def load_faq_all(path="faq_all.csv", cached="faq_all_with_embed.csv"):
         with st.spinner("全FAQへ埋め込み計算中…（初回のみ）"):
             df["embedding"] = df["質問"].apply(get_embedding)
         # 文字列化して保存
-        df["embedding"] = df["embedding"].apply(lambda x: json.dumps(x.tolist()))
+        df["embedding"] = df["embedding"].apply(
+    lambda x: json.dumps(x.tolist()) if hasattr(x, "tolist") else x
+)
         df.to_csv(cached, index=False)
         # 読み込み直し
         df["embedding"] = df["embedding"].apply(json.loads).apply(np.array)
