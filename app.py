@@ -6,32 +6,23 @@ from sklearn.metrics.pairwise import cosine_similarity
 import os, random, re, unicodedata, json
 import base64
 
-# ──────────────────────────────
 # ページ設定
-# ──────────────────────────────
 st.set_page_config(page_title="LRADサポートチャット", layout="centered")
 
-# ──────────────────────────────
 # OpenAIキー
-# ──────────────────────────────
 openai.api_key = st.secrets.OpenAIAPI.openai_api_key
 
-# ──────────────────────────────
-# CSS注入（本文の文字サイズのみ変更）
-# ──────────────────────────────
+# CSS注入
 def inject_custom_css(selected_size):
     st.markdown(
         f"""
         <style>
-        /* 本文のテキスト用 */
         .chat-text, .stCaption, .css-ffhzg2 p, .stTextInput > label {{
             font-size: {selected_size} !important;
         }}
-        /* 入力欄の文字サイズ */
         .stTextInput > div > div > input {{
             font-size: {selected_size} !important;
         }}
-        /* プレースホルダー文字サイズ */
         ::placeholder {{
             font-size: {selected_size} !important;
         }}
@@ -40,14 +31,13 @@ def inject_custom_css(selected_size):
         unsafe_allow_html=True
     )
 
-# ──────────────────────────────
-# ユーティリティ関数
-# ──────────────────────────────
-def get_embedding(text, model="text-embedding-3-small"):
+# Embedding取得
+def get_embedding(text, model="text-embedding-3-large"):
     text = text.replace("\n", " ")
-    res = openai.embeddings.create(input=[text], model=model)
+    res = openai.Embedding.create(input=[text], model=model)
     return np.array(res.data[0].embedding)
 
+# 入力チェック
 def is_valid_input(text: str) -> bool:
     text = text.strip()
     if not (3 <= len(text) <= 300):
@@ -60,9 +50,7 @@ def is_valid_input(text: str) -> bool:
         return False
     return True
 
-# ──────────────────────────────
 # CSV読み込み
-# ──────────────────────────────
 @st.cache_data(show_spinner=False)
 def load_faq_all(path="faq_all.csv", cached="faq_all_with_embed.csv"):
     if os.path.exists(cached):
@@ -76,7 +64,7 @@ def load_faq_all(path="faq_all.csv", cached="faq_all_with_embed.csv"):
         df = pd.read_csv(path)
         with st.spinner("全FAQへ埋め込み計算中…（初回のみ）"):
             df["embedding"] = df["質問"].apply(get_embedding)
-        # 保存時はjson.dumpsで文字列化
+        # 文字列化して保存
         df["embedding"] = df["embedding"].apply(lambda x: json.dumps(x.tolist()))
         df.to_csv(cached, index=False)
         # 読み込み直し
@@ -92,9 +80,7 @@ def load_faq_common(path="faq_common.csv"):
 faq_df = load_faq_all()
 common_faq_df = load_faq_common()
 
-# ──────────────────────────────
-# FAQ表示（本文用classを付与）
-# ──────────────────────────────
+# FAQ表示
 def display_random_common_faqs(common_faq_df, n=3):
     sampled = common_faq_df.sample(n)
     for i, row in enumerate(sampled.itertuples(), 1):
@@ -105,9 +91,7 @@ def display_random_common_faqs(common_faq_df, n=3):
             unsafe_allow_html=True
         )
 
-# ──────────────────────────────
 # 類似質問検索
-# ──────────────────────────────
 def find_top_similar(q, df, k=1):
     if len(q.strip()) < 2:
         return None, None
@@ -117,31 +101,25 @@ def find_top_similar(q, df, k=1):
     idx = sims.argsort()[::-1][:k][0]
     return df.iloc[idx]["質問"], df.iloc[idx]["回答"]
 
-# ──────────────────────────────
 # 回答生成
-# ──────────────────────────────
 def generate_response(user_q, ref_q, ref_a):
     prompt = (
         "あなたはLRAD（遠赤外線電子熱分解装置）の専門家です。\n"
         "以下のFAQを参考に200文字以内で回答してください。\n\n"
         f"FAQ質問: {ref_q}\nFAQ回答: {ref_a}\n\nユーザー質問: {user_q}"
     )
-    res = openai.chat.completions.create(
+    res = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.3,
     )
     return res.choices[0].message.content.strip()
 
-# ──────────────────────────────
 # セッションステート初期化
-# ──────────────────────────────
 if "chat_log" not in st.session_state:
     st.session_state.chat_log = []
 
-# ──────────────────────────────
-# サイドバー：文字サイズ選択とCSS注入
-# ──────────────────────────────
+# サイドバー設定
 st.sidebar.title("⚙️ 表示設定")
 font_size = st.sidebar.selectbox("文字サイズを選んでください", ["小", "中", "大"])
 font_size_map = {"小": "14px", "中": "18px", "大": "24px"}
@@ -152,9 +130,7 @@ selected_img = img_width_map[font_size]
 
 inject_custom_css(selected_font)
 
-# ──────────────────────────────
-# ヘッダー画像とタイトル（タイトルは固定サイズ）
-# ──────────────────────────────
+# ヘッダー画像
 def get_base64_image(path):
     with open(path, "rb") as img_file:
         return base64.b64encode(img_file.read()).decode()
@@ -174,17 +150,13 @@ st.markdown(
 
 st.caption("※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。")
 
-# ──────────────────────────────
 # よくある質問表示
-# ──────────────────────────────
 st.markdown("### 💡 よくある質問（ランダム表示）")
 display_random_common_faqs(common_faq_df, n=3)
 
 st.divider()
 
-# ──────────────────────────────
 # 入力フォーム
-# ──────────────────────────────
 with st.form(key="chat_form", clear_on_submit=True):
     user_q = st.text_input("質問をどうぞ：")
     send = st.form_submit_button("送信")
@@ -202,9 +174,7 @@ if send and user_q:
         st.session_state.chat_log.insert(0, (user_q, answer))
         st.experimental_rerun()
 
-# ──────────────────────────────
 # チャット履歴表示
-# ──────────────────────────────
 if st.session_state.chat_log:
     st.subheader("📜 チャット履歴")
     for q, a in st.session_state.chat_log:
