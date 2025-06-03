@@ -85,15 +85,14 @@ faq_df = load_faq_all()
 common_faq_df = load_faq_common()
 
 # FAQ表示
-def display_random_common_faqs(common_faq_df, n=1):
+def display_common_faqs_with_expander(common_faq_df, n=3):
     sampled = common_faq_df.sample(n)
     for i, row in enumerate(sampled.itertuples(), 1):
         question = getattr(row, "質問", "（質問が不明です）")
         answer = getattr(row, "回答", "（回答が不明です）")
-        st.markdown(
-            f'<div class="chat-text"><b>❓ {question}</b><br>🅰️ {answer}</div><hr>',
-            unsafe_allow_html=True
-        )
+        with st.expander(f"❓ {question}"):
+            st.write(answer)
+
 
 # 類似質問検索
 def find_top_similar(q, df, k=1):
@@ -172,8 +171,8 @@ st.markdown(
 st.caption("※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。")
 
 # よくある質問表示
-st.markdown("### 💡 よくある質問（ランダム表示）")
-display_random_common_faqs(common_faq_df, n=3)
+st.markdown("### 💡 よくある質問（クリックで回答表示）")
+display_common_faqs_with_expander(common_faq_df, n=5)
 
 st.divider()
 
