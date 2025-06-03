@@ -91,7 +91,10 @@ def display_common_faqs_with_expander(common_faq_df, n=3):
         question = getattr(row, "質問", "（質問が不明です）")
         answer = getattr(row, "回答", "（回答が不明です）")
         with st.expander(f"❓ {question}"):
-            st.write(answer)
+            st.markdown(
+                f'<div style="font-size: {selected_font};">{answer}</div>',
+                unsafe_allow_html=True
+            )
 
 
 # 類似質問検索
@@ -171,7 +174,7 @@ st.markdown(
 st.caption("※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。")
 
 # よくある質問表示
-st.markdown("### 💡 よくある質問（クリックで回答表示）")
+st.markdown(f'<h3 style="font-size: {selected_font};">💡 よくある質問（クリックで回答表示）</h3>', unsafe_allow_html=True)
 display_common_faqs_with_expander(common_faq_df, n=5)
 
 st.divider()
