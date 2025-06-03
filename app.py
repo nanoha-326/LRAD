@@ -193,12 +193,11 @@ if send and user_q:
             with st.spinner("回答生成中…"):
                 history_summary = summarize_chat_log(st.session_state.chat_log)
                 answer = generate_response(user_q, ref_q, ref_a, history_summary)
+        # ここでanswerが必ず定義されていることを確認
         st.session_state.chat_log.insert(0, (user_q, answer))
+        if len(st.session_state.chat_log) > 100:
+            st.session_state.chat_log.pop()
         st.experimental_rerun()
-
-st.session_state.chat_log.insert(0, (user_q, answer))
-if len(st.session_state.chat_log) > 100:
-    st.session_state.chat_log.pop()  # 古い1件を削除
 
 # チャット履歴表示
 if st.session_state.chat_log:
