@@ -61,7 +61,7 @@ def load_faq_all(path="faq_all.csv", cached="faq_all_with_embed.csv"):
                 pass
         elif isinstance(val, list) or isinstance(val, np.ndarray):
             return np.array(val)
-        return np.zeros(1536)  # embeddingサイズに応じて変更
+        return np.zeros(1536)
 
     if os.path.exists(cached):
         df = pd.read_csv(cached)
@@ -70,7 +70,6 @@ def load_faq_all(path="faq_all.csv", cached="faq_all_with_embed.csv"):
         df = pd.read_csv(path)
         with st.spinner("全FAQへ埋め込み計算中…（初回のみ）"):
             df["embedding"] = df["質問"].apply(get_embedding)
-        # 文字列化して保存
         df["embedding"] = df["embedding"].apply(lambda x: json.dumps(x.tolist()) if hasattr(x, "tolist") else x)
         df.to_csv(cached, index=False)
         df["embedding"] = df["embedding"].apply(parse_embedding)
@@ -106,10 +105,27 @@ def find_top_similar(q, df, k=1):
     idx = sims.argsort()[::-1][:k][0]
     return df.iloc[idx]["質問"], df.iloc[idx]["回答"]
 
+# チャット履歴要約
+def summarize_chat_log(log, max_turns=5):
+    if not log:
+        return ""
+    recent = log[:max_turns]
+    prompt = "次の会話の要点を200文字以内で要約してください。\n\n"
+    for q, a in recent:
+        prompt += f"ユーザー: {q}\nAI: {a}\n"
+    res = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.3,
+    )
+    return res.choices[0].message.content.strip()
+
 # 回答生成
-def generate_response(user_q, ref_q, ref_a):
+def generate_response(user_q, ref_q, ref_a, history_summary=""):
     prompt = (
         "あなたはLRAD（遠赤外線電子熱分解装置）の専門家です。\n"
+        "以下は過去の会話の要約です：\n"
+        f"{history_summary}\n\n"
         "以下のFAQを参考に200文字以内で回答してください。\n\n"
         f"FAQ質問: {ref_q}\nFAQ回答: {ref_a}\n\nユーザー質問: {user_q}"
     )
@@ -175,7 +191,8 @@ if send and user_q:
             answer = "申し訳ありません、関連FAQが見つかりませんでした。"
         else:
             with st.spinner("回答生成中…"):
-                answer = generate_response(user_q, ref_q, ref_a)
+                history_summary = summarize_chat_log(st.session_state.chat_log)
+                answer = generate_response(user_q, ref_q, ref_a, history_summary)
         st.session_state.chat_log.insert(0, (user_q, answer))
         st.experimental_rerun()
 
