@@ -53,24 +53,27 @@ def is_valid_input(text: str) -> bool:
 # CSV読み込み
 @st.cache_data(show_spinner=False)
 def load_faq_all(path="faq_all.csv", cached="faq_all_with_embed.csv"):
+    def parse_embedding(val):
+        if isinstance(val, str):
+            try:
+                return np.array(json.loads(val))
+            except Exception:
+                pass
+        elif isinstance(val, list) or isinstance(val, np.ndarray):
+            return np.array(val)
+        return np.zeros(1536)  # embeddingサイズに応じて変更
+
     if os.path.exists(cached):
         df = pd.read_csv(cached)
-        try:
-            df["embedding"] = df["embedding"].apply(json.loads).apply(np.array)
-        except Exception as e:
-            st.error(f"埋め込みの読み込みに失敗しました: {e}")
-            st.stop()
+        df["embedding"] = df["embedding"].apply(parse_embedding)
     else:
         df = pd.read_csv(path)
         with st.spinner("全FAQへ埋め込み計算中…（初回のみ）"):
             df["embedding"] = df["質問"].apply(get_embedding)
         # 文字列化して保存
-        df["embedding"] = df["embedding"].apply(
-    lambda x: json.dumps(x.tolist()) if hasattr(x, "tolist") else x
-)
+        df["embedding"] = df["embedding"].apply(lambda x: json.dumps(x.tolist()) if hasattr(x, "tolist") else x)
         df.to_csv(cached, index=False)
-        # 読み込み直し
-        df["embedding"] = df["embedding"].apply(json.loads).apply(np.array)
+        df["embedding"] = df["embedding"].apply(parse_embedding)
     return df
 
 @st.cache_data(show_spinner=False)
@@ -110,7 +113,7 @@ def generate_response(user_q, ref_q, ref_a):
         "以下のFAQを参考に200文字以内で回答してください。\n\n"
         f"FAQ質問: {ref_q}\nFAQ回答: {ref_a}\n\nユーザー質問: {user_q}"
     )
-    res = openai.ChatCompletion.create(
+    res = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.3,
