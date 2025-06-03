@@ -32,11 +32,13 @@ def inject_custom_css(selected_size):
         ::placeholder {{
             font-size: {selected_size} !important;
         }}
+        summary {{
+            font-size: {selected_size} !important;
+        }}
         </style>
         """,
         unsafe_allow_html=True
     )
-
 # Embedding取得
 def get_embedding(text, model="text-embedding-3-small"):
     text = text.replace("\n", " ")
