@@ -1,5 +1,5 @@
 import streamlit as st
-import openai
+from openai import OpenAI
 import pandas as pd
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
@@ -10,7 +10,7 @@ import base64
 st.set_page_config(page_title="LRADサポートチャット", layout="centered")
 
 # OpenAIキー
-openai.api_key = st.secrets.OpenAIAPI.openai_api_key
+client = OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
 
 # CSS注入
 def inject_custom_css(selected_size):
@@ -32,10 +32,10 @@ def inject_custom_css(selected_size):
     )
 
 # Embedding取得
-def get_embedding(text, model="text-embedding-3-large"):
+def get_embedding(text, model="text-embedding-3-small"):
     text = text.replace("\n", " ")
-    res = openai.Embedding.create(input=[text], model=model)
-    return np.array(res.data[0].embedding)
+    res = client.embeddings.create(input=[text], model=model)
+    return res.data[0].embedding
 
 # 入力チェック
 def is_valid_input(text: str) -> bool:
