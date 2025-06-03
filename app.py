@@ -3,27 +3,21 @@ from openai import OpenAI
 import pandas as pd
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
-import os, re, unicodedata, json
+import os, random, re, unicodedata, json
 import base64
 
 # ページ設定
 st.set_page_config(page_title="LRADサポートチャット", layout="centered")
 
-# OpenAIキー設定
+# OpenAIキー
 client = OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
 
-# CSS注入（フォントサイズ制御）
+# CSS注入
 def inject_custom_css(selected_size):
     st.markdown(
         f"""
         <style>
-        .chat-question {{
-            font-size: {selected_size} !important;
-        }}
-        .chat-answer {{
-            font-size: {selected_size} !important;
-        }}
-        .stCaption, .css-ffhzg2 p, .stTextInput > label {{
+        .chat-text, .stCaption, .css-ffhzg2 p, .stTextInput > label {{
             font-size: {selected_size} !important;
         }}
         .stTextInput > div > div > input {{
@@ -56,7 +50,7 @@ def is_valid_input(text: str) -> bool:
         return False
     return True
 
-# FAQ読み込み
+# CSV読み込み
 @st.cache_data(show_spinner=False)
 def load_faq_all(path="faq_all.csv", cached="faq_all_with_embed.csv"):
     def parse_embedding(val):
@@ -65,7 +59,7 @@ def load_faq_all(path="faq_all.csv", cached="faq_all_with_embed.csv"):
                 return np.array(json.loads(val))
             except Exception:
                 pass
-        elif isinstance(val, (list, np.ndarray)):
+        elif isinstance(val, list) or isinstance(val, np.ndarray):
             return np.array(val)
         return np.zeros(1536)
 
@@ -90,20 +84,18 @@ def load_faq_common(path="faq_common.csv"):
 faq_df = load_faq_all()
 common_faq_df = load_faq_common()
 
-# よくあるFAQ表示（完全自作UI）
-def display_common_faqs_custom_ui(common_faq_df, n=3, font_size="18px"):
+# FAQ表示
+def display_random_common_faqs(common_faq_df, n=3):
     sampled = common_faq_df.sample(n)
     for i, row in enumerate(sampled.itertuples(), 1):
         question = getattr(row, "質問", "（質問が不明です）")
         answer = getattr(row, "回答", "（回答が不明です）")
-        show = st.toggle(f"❓ {question}", key=f"faq_toggle_{i}")
-        if show:
-            st.markdown(
-                f'<div style="font-size: {font_size}; white-space: pre-wrap;">{answer}</div>',
-                unsafe_allow_html=True
-            )
+        st.markdown(
+            f'<div class="chat-text"><b>❓ {question}</b><br>🅰️ {answer}</div><hr>',
+            unsafe_allow_html=True
+        )
 
-# 類似検索
+# 類似質問検索
 def find_top_similar(q, df, k=1):
     if len(q.strip()) < 2:
         return None, None
@@ -148,7 +140,7 @@ def generate_response(user_q, ref_q, ref_a, history_summary=""):
 if "chat_log" not in st.session_state:
     st.session_state.chat_log = []
 
-# サイドバー
+# サイドバー設定
 st.sidebar.title("⚙️ 表示設定")
 font_size = st.sidebar.selectbox("文字サイズを選んでください", ["小", "中", "大"])
 font_size_map = {"小": "14px", "中": "18px", "大": "24px"}
@@ -159,7 +151,7 @@ selected_img = img_width_map[font_size]
 
 inject_custom_css(selected_font)
 
-# ヘッダー画像表示
+# ヘッダー画像
 def get_base64_image(path):
     with open(path, "rb") as img_file:
         return base64.b64encode(img_file.read()).decode()
@@ -170,7 +162,7 @@ st.markdown(
     f"""
     <div style="display:flex; align-items:center;" class="chat-header">
         <img src="data:image/png;base64,{image_base64}"
-             width="{selected_img}px" style="margin-right:10px;">
+             width="80px" style="margin-right:10px;">
         <h1 style="margin:0; font-size:40px; font-weight:bold;">LRADサポートチャット</h1>
     </div>
     """,
@@ -179,9 +171,9 @@ st.markdown(
 
 st.caption("※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。")
 
-# よくあるFAQ表示（カスタムUI）
-st.markdown(f'<h3 style="font-size: {selected_font};">💡 よくある質問（クリックで回答表示）</h3>', unsafe_allow_html=True)
-display_common_faqs_custom_ui(common_faq_df, n=5, font_size=selected_font)
+# よくある質問表示
+st.markdown("### 💡 よくある質問（ランダム表示）")
+display_random_common_faqs(common_faq_df, n=3)
 
 st.divider()
 
@@ -201,20 +193,17 @@ if send and user_q:
             with st.spinner("回答生成中…"):
                 history_summary = summarize_chat_log(st.session_state.chat_log)
                 answer = generate_response(user_q, ref_q, ref_a, history_summary)
+        # ここでanswerが必ず定義されていることを確認
         st.session_state.chat_log.insert(0, (user_q, answer))
         if len(st.session_state.chat_log) > 100:
             st.session_state.chat_log.pop()
         st.experimental_rerun()
 
-# チャット履歴表示（フォントサイズ適用）
+# チャット履歴表示
 if st.session_state.chat_log:
     st.subheader("📜 チャット履歴")
     for q, a in st.session_state.chat_log:
         st.markdown(
-            f'''
-            <div class="chat-question"><b>🧑‍💻 質問:</b> {q}</div>
-            <div class="chat-answer"><b>🤖 回答:</b> {a}</div>
-            <hr>
-            ''',
+            f'<div class="chat-text"><b>🧑‍💻 質問:</b> {q}<br><b>🤖 回答:</b> {a}</div><hr>',
             unsafe_allow_html=True
         )
