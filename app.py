@@ -212,8 +212,3 @@ if st.session_state.chat_log:
             f'<div class="chat-text"><b>🧑‍💻 質問:</b> {q}<br><b>🤖 回答:</b> {a}</div><hr>',
             unsafe_allow_html=True
         )
-
-import pandas as pd
-
-df = pd.read_csv("faq_all_with_embed.csv")
-print(df["embedding"].iloc[0])
