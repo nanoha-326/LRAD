@@ -196,6 +196,10 @@ if send and user_q:
         st.session_state.chat_log.insert(0, (user_q, answer))
         st.experimental_rerun()
 
+st.session_state.chat_log.insert(0, (user_q, answer))
+if len(st.session_state.chat_log) > 100:
+    st.session_state.chat_log.pop()  # 古い1件を削除
+
 # チャット履歴表示
 if st.session_state.chat_log:
     st.subheader("📜 チャット履歴")
