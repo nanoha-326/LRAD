@@ -4,3 +4,4 @@ openai
 scikit-learn==1.4.2
 sentence-transformers
 google-auth
+matplotlib
