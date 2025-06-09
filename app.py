@@ -6,7 +6,8 @@ import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 import os, random, re, unicodedata, json, base64
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
+from google.oauth2 import service_account
+
 
 # ページ設定
 st.set_page_config(page_title="LRADサポートチャット", layout="centered")
