@@ -6,7 +6,7 @@ import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 import os, random, re, unicodedata, json, base64
 import gspread
-from google.oauth2 import service_account
+from google.oauth2.service_account import Credentials
 import json
 
 # ページ設定
