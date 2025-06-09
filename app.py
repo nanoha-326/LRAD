@@ -1,16 +1,36 @@
+# LRADサポートチャット（CSV + Google Sheets保存対応）
 import streamlit as st
 from openai import OpenAI
 import pandas as pd
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
-import os, random, re, unicodedata, json
-import base64
+import os, random, re, unicodedata, json, base64
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 
 # ページ設定
 st.set_page_config(page_title="LRADサポートチャット", layout="centered")
 
 # OpenAIキー
 client = OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
+
+# Google Sheets保存
+def append_to_gsheet(question, answer):
+    info = json.loads(st.secrets["GoogleSheets"]["service_account_info"])
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(info, scope)
+    client = gspread.authorize(creds)
+    sheet = client.open_by_key(st.secrets["GoogleSheets"]["sheet_key"]).sheet1
+    row = [pd.Timestamp.now().isoformat(), question, answer]
+    sheet.append_row(row)
+
+# CSV保存
+def append_to_csv(question, answer, path="chat_logs.csv"):
+    df = pd.DataFrame([{ "timestamp": pd.Timestamp.now().isoformat(), "question": question, "answer": answer }])
+    if not os.path.exists(path):
+        df.to_csv(path, index=False)
+    else:
+        df.to_csv(path, mode='a', header=False, index=False)
 
 # CSS注入
 def inject_custom_css(selected_size):
@@ -182,6 +202,7 @@ with st.form(key="chat_form", clear_on_submit=True):
     user_q = st.text_input("質問をどうぞ：")
     send = st.form_submit_button("送信")
 
+# チャット送信処理
 if send and user_q:
     if not is_valid_input(user_q):
         st.warning("入力が不正です。3〜300文字、記号率30%未満にしてください。")
@@ -193,8 +214,12 @@ if send and user_q:
             with st.spinner("回答生成中…"):
                 history_summary = summarize_chat_log(st.session_state.chat_log)
                 answer = generate_response(user_q, ref_q, ref_a, history_summary)
-        # ここでanswerが必ず定義されていることを確認
+
+        # 履歴に追加 & 保存処理
         st.session_state.chat_log.insert(0, (user_q, answer))
+        append_to_csv(user_q, answer)
+        append_to_gsheet(user_q, answer)
+
         if len(st.session_state.chat_log) > 100:
             st.session_state.chat_log.pop()
         st.experimental_rerun()
