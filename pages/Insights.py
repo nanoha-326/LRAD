@@ -12,17 +12,22 @@ from google.oauth2.service_account import Credentials
 st.set_page_config(page_title="LRADチャット インサイト分析", layout="wide")
 st.title("📊 LRADサポートチャット インサイトダッシュボード")
 
-# Timestampを文字列に変換する関数（Google Sheets保存用）
+# Timestampやdate型を文字列に変換する関数（Google Sheets保存用）
 def convert_timestamps_to_str(df):
-    for col in df.select_dtypes(include=['datetime64[ns]', 'datetime64[ns, UTC]']).columns:
-        df[col] = df[col].dt.strftime('%Y-%m-%d %H:%M:%S')
+    for col in df.columns:
+        # pandasのdatetime64型ならフォーマットして文字列化
+        if pd.api.types.is_datetime64_any_dtype(df[col]):
+            df[col] = df[col].dt.strftime('%Y-%m-%d %H:%M:%S')
+        else:
+            # 先頭要素がdatetime.dateなら文字列化（date型対応）
+            if not df[col].empty and isinstance(df[col].iloc[0], datetime.date):
+                df[col] = df[col].astype(str)
     return df
 
 # Google Sheetsに保存する関数（改良版）
 def save_insight_to_gsheet(data: pd.DataFrame, sheet_name: str):
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 
-    # JSON文字列か辞書かを判定して読み込み
     raw_info = st.secrets["GoogleSheets"]["service_account_info"]
     if isinstance(raw_info, str):
         info = json.loads(raw_info)
@@ -34,7 +39,6 @@ def save_insight_to_gsheet(data: pd.DataFrame, sheet_name: str):
     sheet_key = st.secrets["GoogleSheets"]["sheet_key"]
     sh = gc.open_by_key(sheet_key)
 
-    # ワークシートがなければ作成
     try:
         worksheet = sh.worksheet(sheet_name)
     except gspread.WorksheetNotFound:
@@ -42,7 +46,6 @@ def save_insight_to_gsheet(data: pd.DataFrame, sheet_name: str):
 
     worksheet.clear()
 
-    # Timestampを文字列に変換してから保存
     data_to_save = convert_timestamps_to_str(data.copy())
 
     worksheet.update([data_to_save.columns.values.tolist()] + data_to_save.values.tolist())
