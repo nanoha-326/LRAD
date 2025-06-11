@@ -12,6 +12,48 @@ from openai import OpenAI
 # OpenAIキー
 client = OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
 
+# 質問テキストリストからEmbeddingを取得する関数
+def get_embeddings(texts):
+    embeddings = []
+    batch_size = 20  # API制限を考慮し分割可
+    for i in range(0, len(texts), batch_size):
+        batch = texts[i:i+batch_size]
+        response = openai.Embedding.create(
+            model="text-embedding-3-small",
+            input=batch
+        )
+        batch_embeddings = [e["embedding"] for e in response["data"]]
+        embeddings.extend(batch_embeddings)
+    return np.array(embeddings)
+
+# フィルタ済みデータフレーム例（質問列を抽出）
+questions = filtered_df["question"].fillna("").tolist()
+
+# Embedding取得
+with st.spinner("質問をベクトル化中..."):
+    embeddings = get_embeddings(questions)
+
+# クラスタ数は適宜調整
+num_clusters = 5
+
+# k-meansクラスタリング実行
+kmeans = KMeans(n_clusters=num_clusters, random_state=42)
+clusters = kmeans.fit_predict(embeddings)
+
+# DataFrameにクラスタ結果を追加
+filtered_df["cluster"] = clusters
+
+# クラスタごとに代表質問を1つ表示する例
+st.subheader("質問の自動クラスタリング結果")
+for cluster_num in range(num_clusters):
+    st.write(f"### クラスタ {cluster_num + 1}")
+    cluster_questions = filtered_df[filtered_df["cluster"] == cluster_num]["question"]
+    if not cluster_questions.empty:
+        st.write(f"代表質問例: {cluster_questions.iloc[0]}")
+        st.write(f"質問数: {len(cluster_questions)}")
+        with st.expander("質問一覧を表示"):
+            st.write(cluster_questions.tolist())
+
 # ページ設定
 st.set_page_config(page_title="LRADチャット インサイト分析", layout="wide")
 st.title("📊 LRADサポートチャット インサイトダッシュボード")
