@@ -8,15 +8,29 @@ import gspread
 import json
 import numpy as np
 from google.oauth2.service_account import Credentials
+from openai import OpenAI
 from sklearn.cluster import KMeans
-import openai
 
-# ページ設定は一番最初に
+# ページ設定（早めに）
 st.set_page_config(page_title="LRADチャット インサイト分析", layout="wide")
 st.title("📊 LRADサポートチャット インサイトダッシュボード")
 
-# OpenAI APIキーセット
-openai.api_key = st.secrets["OpenAIAPI"]["openai_api_key"]
+# OpenAIクライアント初期化
+client = OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
+
+# 質問テキストリストからEmbeddingを取得する関数
+def get_embeddings(texts):
+    embeddings = []
+    batch_size = 20  # API制限を考慮
+    for i in range(0, len(texts), batch_size):
+        batch = texts[i:i+batch_size]
+        response = client.embeddings.create(
+            model="text-embedding-3-small",
+            input=batch
+        )
+        batch_embeddings = [e.embedding for e in response.data]
+        embeddings.extend(batch_embeddings)
+    return np.array(embeddings)
 
 # Timestampやdate型を文字列に変換する関数（Google Sheets保存用）
 def convert_timestamps_to_str(df):
@@ -28,30 +42,24 @@ def convert_timestamps_to_str(df):
                 df[col] = df[col].astype(str)
     return df
 
-# Google Sheetsに保存する関数（改良版）
+# Google Sheetsに保存する関数
 def save_insight_to_gsheet(data: pd.DataFrame, sheet_name: str):
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-
     raw_info = st.secrets["GoogleSheets"]["service_account_info"]
     if isinstance(raw_info, str):
         info = json.loads(raw_info)
     else:
         info = raw_info
-
     creds = Credentials.from_service_account_info(info, scopes=scope)
     gc = gspread.authorize(creds)
     sheet_key = st.secrets["GoogleSheets"]["sheet_key"]
     sh = gc.open_by_key(sheet_key)
-
     try:
         worksheet = sh.worksheet(sheet_name)
     except gspread.WorksheetNotFound:
         worksheet = sh.add_worksheet(title=sheet_name, rows="1000", cols="20")
-
     worksheet.clear()
-
     data_to_save = convert_timestamps_to_str(data.copy())
-
     worksheet.update([data_to_save.columns.values.tolist()] + data_to_save.values.tolist())
 
 # ログ読み込み
@@ -86,32 +94,16 @@ else:
 filtered_df = df[(df["date"] >= start_date) & (df["date"] <= end_date)]
 st.sidebar.write(f"表示件数: {len(filtered_df)} 件")
 
-# --- ここから自動クラスタリング処理 ---
-
-# 質問テキストリストを作成
+# 質問テキストのEmbedding取得＆クラスタリング
 questions = filtered_df["question"].fillna("").tolist()
 
-def get_embeddings(texts):
-    embeddings = []
-    batch_size = 20
-    for i in range(0, len(texts), batch_size):
-        batch = texts[i:i+batch_size]
-        response = client.embeddings.create(
-            model="text-embedding-3-small",
-            input=batch
-        )
-        batch_embeddings = [e["embedding"] for e in response.data]
-        embeddings.extend(batch_embeddings)
-    return np.array(embeddings)
-
-if len(questions) > 0:
+if questions:
     with st.spinner("質問をベクトル化中..."):
         embeddings = get_embeddings(questions)
 
-    num_clusters = 5  # 適宜調整してください
+    num_clusters = 5  # お好みで調整してください
     kmeans = KMeans(n_clusters=num_clusters, random_state=42)
     clusters = kmeans.fit_predict(embeddings)
-
     filtered_df["cluster"] = clusters
 
     st.subheader("質問の自動クラスタリング結果")
@@ -123,10 +115,8 @@ if len(questions) > 0:
             st.write(f"質問数: {len(cluster_questions)}")
             with st.expander("質問一覧を表示"):
                 st.write(cluster_questions.tolist())
-else:
-    st.info("フィルタされた質問がありません。")
 
-# ✅ Google Sheets保存ボタン
+# Google Sheets保存ボタン
 if st.button("📤 Google Sheetsに保存（Insights）"):
     try:
         save_insight_to_gsheet(filtered_df, sheet_name="Insights")
@@ -165,7 +155,6 @@ if "faq_matched" in df.columns:
     matched_counts = filtered_df["faq_matched"].value_counts(normalize=True) * 100
     labels = ["FAQに該当", "該当せず"]
     values = [matched_counts.get(True, 0), matched_counts.get(False, 0)]
-
     fig2, ax2 = plt.subplots()
     ax2.pie(values, labels=labels, autopct="%1.1f%%", startangle=90, colors=["#66b3ff", "#ff9999"])
     ax2.axis("equal")
