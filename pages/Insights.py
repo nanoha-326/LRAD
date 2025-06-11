@@ -97,24 +97,33 @@ st.sidebar.write(f"表示件数: {len(filtered_df)} 件")
 # 質問テキストのEmbedding取得＆クラスタリング
 questions = filtered_df["question"].fillna("").tolist()
 
-if questions:
+if len(questions) > 0:
     with st.spinner("質問をベクトル化中..."):
         embeddings = get_embeddings(questions)
 
-    num_clusters = 5  # お好みで調整してください
-    kmeans = KMeans(n_clusters=num_clusters, random_state=42)
-    clusters = kmeans.fit_predict(embeddings)
-    filtered_df["cluster"] = clusters
+    if embeddings.shape[0] < 2:
+        st.warning("質問が少なすぎてクラスタリングをスキップします。")
+    else:
+        # NaNチェック
+        if np.isnan(embeddings).any():
+            st.error("Embeddingに無効な値が含まれています。")
+        else:
+            # クラスタ数は質問数未満に調整
+            num_clusters = min(5, embeddings.shape[0])
+            kmeans = KMeans(n_clusters=num_clusters, random_state=42)
+            clusters = kmeans.fit_predict(embeddings)
+            filtered_df["cluster"] = clusters
 
-    st.subheader("質問の自動クラスタリング結果")
-    for cluster_num in range(num_clusters):
-        st.write(f"### クラスタ {cluster_num + 1}")
-        cluster_questions = filtered_df[filtered_df["cluster"] == cluster_num]["question"]
-        if not cluster_questions.empty:
-            st.write(f"代表質問例: {cluster_questions.iloc[0]}")
-            st.write(f"質問数: {len(cluster_questions)}")
-            with st.expander("質問一覧を表示"):
-                st.write(cluster_questions.tolist())
+            st.subheader("質問の自動クラスタリング結果")
+            for cluster_num in range(num_clusters):
+                st.write(f"### クラスタ {cluster_num + 1}")
+                cluster_questions = filtered_df[filtered_df["cluster"] == cluster_num]["question"]
+                if not cluster_questions.empty:
+                    st.write(f"代表質問例: {cluster_questions.iloc[0]}")
+                    st.write(f"質問数: {len(cluster_questions)}")
+                    with st.expander("質問一覧を表示"):
+                        st.write(cluster_questions.tolist())
+
 
 # Google Sheets保存ボタン
 if st.button("📤 Google Sheetsに保存（Insights）"):
