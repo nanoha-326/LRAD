@@ -4,6 +4,19 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import datetime
 import os
+# 例：Insightsページのデータを保存
+import pandas as pd
+import gspread
+from google.oauth2.service_account import Credentials
+
+def save_insight_to_gsheet(data: pd.DataFrame, sheet_name: str):
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    creds = Credentials.from_service_account_info(st.secrets["GoogleSheets"]["service_account_info"], scopes=scope)
+    gc = gspread.authorize(creds)
+    sh = gc.open_by_key(st.secrets["GoogleSheets"]["sheet_key"])
+    worksheet = sh.worksheet(sheet_name)
+    worksheet.clear()
+    worksheet.update([data.columns.values.tolist()] + data.values.tolist())
 
 # ページ設定
 st.set_page_config(page_title="LRADチャット インサイト分析", layout="wide")
