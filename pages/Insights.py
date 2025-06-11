@@ -4,11 +4,14 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import datetime
 import os
-# 例：Insightsページのデータを保存
-import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
 
+# ページ設定
+st.set_page_config(page_title="LRADチャット インサイト分析", layout="wide")
+st.title("📊 LRADサポートチャット インサイトダッシュボード")
+
+# Google Sheetsに保存する関数
 def save_insight_to_gsheet(data: pd.DataFrame, sheet_name: str):
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     creds = Credentials.from_service_account_info(st.secrets["GoogleSheets"]["service_account_info"], scopes=scope)
@@ -18,16 +21,10 @@ def save_insight_to_gsheet(data: pd.DataFrame, sheet_name: str):
     worksheet.clear()
     worksheet.update([data.columns.values.tolist()] + data.values.tolist())
 
-# ページ設定
-st.set_page_config(page_title="LRADチャット インサイト分析", layout="wide")
-
-st.title("📊 LRADサポートチャット インサイトダッシュボード")
-
 # ログ読み込み
 LOG_FILE = "chat_logs.csv"
-
 if not os.path.exists(LOG_FILE):
-    st.warning("⚠️ チャットログ（chat_logs.csv）が見つかりません。チャット送信後に自動保存されます。")
+    st.warning("⚠️ チャットログ（chat_logs.csv）が見つかりません。")
     st.stop()
 
 df = pd.read_csv(LOG_FILE)
@@ -36,10 +33,11 @@ if df.empty:
     st.info("チャットログがまだ保存されていません。")
     st.stop()
 
-# タイムスタンプ処理
+# タイムスタンプの整形
 df["timestamp"] = pd.to_datetime(df["timestamp"])
 df["date"] = df["timestamp"].dt.date
 df["hour"] = df["timestamp"].dt.hour
+df["month"] = df["timestamp"].dt.to_period("M").astype(str)
 
 # サイドバー：日付絞り込み
 st.sidebar.header("🔍 絞り込み")
@@ -53,43 +51,59 @@ else:
     start_date = end_date = selected_range
 
 filtered_df = df[(df["date"] >= start_date) & (df["date"] <= end_date)]
+st.sidebar.write(f"表示件数: {len(filtered_df)} 件")
 
-st.sidebar.write(f"表示件数: {len(filtered_df)}件")
+# ✅ Google Sheets保存ボタン
+if st.button("📤 Google Sheetsに保存（Insights）"):
+    try:
+        save_insight_to_gsheet(filtered_df, sheet_name="Insights")
+        st.success("Google Sheets に保存しました！")
+    except Exception as e:
+        st.error(f"保存に失敗しました: {e}")
 
 # グラフ1：よくある質問ランキング
 st.subheader("📌 よくある質問ランキング（Top 10）")
 top_questions = filtered_df["question"].value_counts().head(10)
-
 st.bar_chart(top_questions)
 
-# グラフ2：時間帯別の質問傾向
+# グラフ2：時間帯別の質問数
 st.subheader("🕒 時間帯別の質問数（0〜23時）")
 hourly_counts = filtered_df.groupby("hour").size().reindex(range(24), fill_value=0)
-
 fig1, ax1 = plt.subplots()
 sns.barplot(x=hourly_counts.index, y=hourly_counts.values, ax=ax1, palette="Blues_d")
 ax1.set_xlabel("時間帯")
 ax1.set_ylabel("質問数")
 st.pyplot(fig1)
 
-# グラフ3：日別の質問推移
-st.subheader("📅 日別の質問数")
-daily_counts = filtered_df.groupby("date").size()
+# ✅ グラフ3：月別の質問数推移
+st.subheader("🗓 月別の質問数")
+monthly_counts = filtered_df.groupby("month").size()
+st.line_chart(monthly_counts)
 
-st.line_chart(daily_counts)
+# ✅ グラフ4：カテゴリ別の質問数（カテゴリ列があれば）
+if "category" in df.columns:
+    st.subheader("🏷 カテゴリ別の質問数")
+    category_counts = filtered_df["category"].value_counts()
+    st.bar_chart(category_counts)
 
-# オプション：最近の質問一覧
+# ✅ グラフ5：FAQ外の質問（faq_matched列がTrue/False想定）
+if "faq_matched" in df.columns:
+    st.subheader("❓ FAQ外質問の割合")
+    matched_counts = filtered_df["faq_matched"].value_counts(normalize=True) * 100
+    labels = ["FAQに該当", "該当せず"]
+    values = [matched_counts.get(True, 0), matched_counts.get(False, 0)]
+
+    fig2, ax2 = plt.subplots()
+    ax2.pie(values, labels=labels, autopct="%1.1f%%", startangle=90, colors=["#66b3ff", "#ff9999"])
+    ax2.axis("equal")
+    st.pyplot(fig2)
+
+# 最近の質問一覧
 with st.expander("🗂 最近の質問一覧を表示", expanded=False):
     st.dataframe(
         filtered_df[["timestamp", "question", "answer"]].sort_values("timestamp", ascending=False),
         use_container_width=True,
         hide_index=True
     )
-
-# FAQヒット率（参考用：is_faq_matched カラムがある場合）
-if "faq_matched" in df.columns:
-    st.subheader("✅ FAQヒット率")
-    match_rate = df["faq_matched"].mean()
-    st.metric(label="FAQヒット率", value=f"{match_rate*100:.1f} %")
 
 st.caption("※ この分析は `chat_logs.csv` に記録されたチャットログに基づいています。")
