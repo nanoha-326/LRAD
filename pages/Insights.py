@@ -96,11 +96,11 @@ def get_embeddings(texts):
     batch_size = 20
     for i in range(0, len(texts), batch_size):
         batch = texts[i:i+batch_size]
-        response = openai.Embedding.create(
+        response = client.embeddings.create(
             model="text-embedding-3-small",
             input=batch
         )
-        batch_embeddings = [item["embedding"] for item in response["data"]]
+        batch_embeddings = [e["embedding"] for e in response.data]
         embeddings.extend(batch_embeddings)
     return np.array(embeddings)
 
