@@ -7,6 +7,7 @@ import os
 import gspread
 import json
 from google.oauth2.service_account import Credentials
+import openai
 
 # ページ設定
 st.set_page_config(page_title="LRADチャット インサイト分析", layout="wide")
