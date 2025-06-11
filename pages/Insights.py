@@ -6,66 +6,24 @@ import datetime
 import os
 import gspread
 import json
+import numpy as np
 from google.oauth2.service_account import Credentials
-from openai import OpenAI
+from sklearn.cluster import KMeans
+import openai
 
-# OpenAIキー
-client = OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
-
-# 質問テキストリストからEmbeddingを取得する関数
-def get_embeddings(texts):
-    embeddings = []
-    batch_size = 20  # API制限を考慮し分割可
-    for i in range(0, len(texts), batch_size):
-        batch = texts[i:i+batch_size]
-        response = openai.Embedding.create(
-            model="text-embedding-3-small",
-            input=batch
-        )
-        batch_embeddings = [e["embedding"] for e in response["data"]]
-        embeddings.extend(batch_embeddings)
-    return np.array(embeddings)
-
-# フィルタ済みデータフレーム例（質問列を抽出）
-questions = filtered_df["question"].fillna("").tolist()
-
-# Embedding取得
-with st.spinner("質問をベクトル化中..."):
-    embeddings = get_embeddings(questions)
-
-# クラスタ数は適宜調整
-num_clusters = 5
-
-# k-meansクラスタリング実行
-kmeans = KMeans(n_clusters=num_clusters, random_state=42)
-clusters = kmeans.fit_predict(embeddings)
-
-# DataFrameにクラスタ結果を追加
-filtered_df["cluster"] = clusters
-
-# クラスタごとに代表質問を1つ表示する例
-st.subheader("質問の自動クラスタリング結果")
-for cluster_num in range(num_clusters):
-    st.write(f"### クラスタ {cluster_num + 1}")
-    cluster_questions = filtered_df[filtered_df["cluster"] == cluster_num]["question"]
-    if not cluster_questions.empty:
-        st.write(f"代表質問例: {cluster_questions.iloc[0]}")
-        st.write(f"質問数: {len(cluster_questions)}")
-        with st.expander("質問一覧を表示"):
-            st.write(cluster_questions.tolist())
-
-# ページ設定
+# ページ設定は一番最初に
 st.set_page_config(page_title="LRADチャット インサイト分析", layout="wide")
 st.title("📊 LRADサポートチャット インサイトダッシュボード")
+
+# OpenAI APIキーセット
+openai.api_key = st.secrets["OpenAIAPI"]["openai_api_key"]
 
 # Timestampやdate型を文字列に変換する関数（Google Sheets保存用）
 def convert_timestamps_to_str(df):
     for col in df.columns:
-        # pandasのdatetime64型ならフォーマットして文字列化
         if pd.api.types.is_datetime64_any_dtype(df[col]):
             df[col] = df[col].dt.strftime('%Y-%m-%d %H:%M:%S')
         else:
-            # 先頭要素がdatetime.dateなら文字列化（date型対応）
             if not df[col].empty and isinstance(df[col].iloc[0], datetime.date):
                 df[col] = df[col].astype(str)
     return df
@@ -128,6 +86,46 @@ else:
 filtered_df = df[(df["date"] >= start_date) & (df["date"] <= end_date)]
 st.sidebar.write(f"表示件数: {len(filtered_df)} 件")
 
+# --- ここから自動クラスタリング処理 ---
+
+# 質問テキストリストを作成
+questions = filtered_df["question"].fillna("").tolist()
+
+def get_embeddings(texts):
+    embeddings = []
+    batch_size = 20
+    for i in range(0, len(texts), batch_size):
+        batch = texts[i:i+batch_size]
+        response = openai.Embedding.create(
+            model="text-embedding-3-small",
+            input=batch
+        )
+        batch_embeddings = [item["embedding"] for item in response["data"]]
+        embeddings.extend(batch_embeddings)
+    return np.array(embeddings)
+
+if len(questions) > 0:
+    with st.spinner("質問をベクトル化中..."):
+        embeddings = get_embeddings(questions)
+
+    num_clusters = 5  # 適宜調整してください
+    kmeans = KMeans(n_clusters=num_clusters, random_state=42)
+    clusters = kmeans.fit_predict(embeddings)
+
+    filtered_df["cluster"] = clusters
+
+    st.subheader("質問の自動クラスタリング結果")
+    for cluster_num in range(num_clusters):
+        st.write(f"### クラスタ {cluster_num + 1}")
+        cluster_questions = filtered_df[filtered_df["cluster"] == cluster_num]["question"]
+        if not cluster_questions.empty:
+            st.write(f"代表質問例: {cluster_questions.iloc[0]}")
+            st.write(f"質問数: {len(cluster_questions)}")
+            with st.expander("質問一覧を表示"):
+                st.write(cluster_questions.tolist())
+else:
+    st.info("フィルタされた質問がありません。")
+
 # ✅ Google Sheets保存ボタン
 if st.button("📤 Google Sheetsに保存（Insights）"):
     try:
@@ -150,18 +148,18 @@ ax1.set_xlabel("時間帯")
 ax1.set_ylabel("質問数")
 st.pyplot(fig1)
 
-# ✅ グラフ3：月別の質問数
+# グラフ3：月別の質問数
 st.subheader("🗓 月別の質問数")
 monthly_counts = filtered_df.groupby("month").size()
 st.line_chart(monthly_counts)
 
-# ✅ グラフ4：カテゴリ別の質問数
+# グラフ4：カテゴリ別の質問数
 if "category" in df.columns:
     st.subheader("🏷 カテゴリ別の質問数")
     category_counts = filtered_df["category"].value_counts()
     st.bar_chart(category_counts)
 
-# ✅ グラフ5：FAQ外の質問割合
+# グラフ5：FAQ外の質問割合
 if "faq_matched" in df.columns:
     st.subheader("❓ FAQ外質問の割合")
     matched_counts = filtered_df["faq_matched"].value_counts(normalize=True) * 100
