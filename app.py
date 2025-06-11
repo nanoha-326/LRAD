@@ -7,7 +7,6 @@ from sklearn.metrics.pairwise import cosine_similarity
 import os, random, re, unicodedata, json, base64
 import gspread
 from google.oauth2.service_account import Credentials
-import json
 
 # ページ設定
 st.set_page_config(page_title="LRADサポートチャット", layout="centered")
@@ -15,21 +14,24 @@ st.set_page_config(page_title="LRADサポートチャット", layout="centered")
 # OpenAIキー
 client = OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
 
-# Google Sheets保存
+# Google Sheets保存（修正済）
 def append_to_gsheet(question, answer):
     sheet_key = st.secrets["GoogleSheets"]["sheet_key"]
-    info = json.loads(st.secrets["GoogleSheets"]["service_account_info"])
+    service_account_info = st.secrets["GoogleSheets"]["service_account_info"]
+
+    # JSON文字列を辞書に変換（必要に応じて）
+    if isinstance(service_account_info, str):
+        service_account_info = json.loads(service_account_info)
+
     scope = [
         "https://spreadsheets.google.com/feeds",
         "https://www.googleapis.com/auth/drive"
     ]
-
     creds = Credentials.from_service_account_info(service_account_info, scopes=scope)
     gc = gspread.authorize(creds)
-
     sh = gc.open_by_key(sheet_key)
     worksheet = sh.sheet1
-    worksheet.append_row([user_q, answer])
+    worksheet.append_row([question, answer])
 
 # CSV保存
 def append_to_csv(question, answer, path="chat_logs.csv"):
