@@ -5,19 +5,35 @@ import seaborn as sns
 import datetime
 import os
 import gspread
+import json
 from google.oauth2.service_account import Credentials
 
 # ページ設定
 st.set_page_config(page_title="LRADチャット インサイト分析", layout="wide")
 st.title("📊 LRADサポートチャット インサイトダッシュボード")
 
-# Google Sheetsに保存する関数
+# Google Sheetsに保存する関数（改良版）
 def save_insight_to_gsheet(data: pd.DataFrame, sheet_name: str):
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds = Credentials.from_service_account_info(st.secrets["GoogleSheets"]["service_account_info"], scopes=scope)
+    
+    # JSON文字列か辞書かを判定して読み込み
+    raw_info = st.secrets["GoogleSheets"]["service_account_info"]
+    if isinstance(raw_info, str):
+        info = json.loads(raw_info)
+    else:
+        info = raw_info
+
+    creds = Credentials.from_service_account_info(info, scopes=scope)
     gc = gspread.authorize(creds)
-    sh = gc.open_by_key(st.secrets["GoogleSheets"]["sheet_key"])
-    worksheet = sh.worksheet(sheet_name)
+    sheet_key = st.secrets["GoogleSheets"]["sheet_key"]
+    sh = gc.open_by_key(sheet_key)
+
+    # ワークシートがなければ作成
+    try:
+        worksheet = sh.worksheet(sheet_name)
+    except gspread.WorksheetNotFound:
+        worksheet = sh.add_worksheet(title=sheet_name, rows="1000", cols="20")
+
     worksheet.clear()
     worksheet.update([data.columns.values.tolist()] + data.values.tolist())
 
@@ -33,7 +49,7 @@ if df.empty:
     st.info("チャットログがまだ保存されていません。")
     st.stop()
 
-# タイムスタンプの整形
+# タイムスタンプ整形
 df["timestamp"] = pd.to_datetime(df["timestamp"])
 df["date"] = df["timestamp"].dt.date
 df["hour"] = df["timestamp"].dt.hour
@@ -57,9 +73,9 @@ st.sidebar.write(f"表示件数: {len(filtered_df)} 件")
 if st.button("📤 Google Sheetsに保存（Insights）"):
     try:
         save_insight_to_gsheet(filtered_df, sheet_name="Insights")
-        st.success("Google Sheets に保存しました！")
+        st.success("✅ Google Sheets に保存しました！")
     except Exception as e:
-        st.error(f"保存に失敗しました: {e}")
+        st.error(f"❌ 保存に失敗しました: {e}")
 
 # グラフ1：よくある質問ランキング
 st.subheader("📌 よくある質問ランキング（Top 10）")
@@ -75,18 +91,18 @@ ax1.set_xlabel("時間帯")
 ax1.set_ylabel("質問数")
 st.pyplot(fig1)
 
-# ✅ グラフ3：月別の質問数推移
+# ✅ グラフ3：月別の質問数
 st.subheader("🗓 月別の質問数")
 monthly_counts = filtered_df.groupby("month").size()
 st.line_chart(monthly_counts)
 
-# ✅ グラフ4：カテゴリ別の質問数（カテゴリ列があれば）
+# ✅ グラフ4：カテゴリ別の質問数
 if "category" in df.columns:
     st.subheader("🏷 カテゴリ別の質問数")
     category_counts = filtered_df["category"].value_counts()
     st.bar_chart(category_counts)
 
-# ✅ グラフ5：FAQ外の質問（faq_matched列がTrue/False想定）
+# ✅ グラフ5：FAQ外の質問割合
 if "faq_matched" in df.columns:
     st.subheader("❓ FAQ外質問の割合")
     matched_counts = filtered_df["faq_matched"].value_counts(normalize=True) * 100
