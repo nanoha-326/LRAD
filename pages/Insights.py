@@ -7,7 +7,7 @@ import os
 import gspread
 import json
 from google.oauth2.service_account import Credentials
-import openai
+from openai import OpenAI
 
 # OpenAIキー
 client = OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
