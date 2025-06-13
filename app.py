@@ -299,13 +299,13 @@ if send and user_q:
             answer = "申し訳ありません、関連FAQが見つかりませんでした。"
         else:
             with st.spinner("回答生成中…"):
-                # 履歴の要約は表示順に合わせて
-                if log_order == "新しい順":
-                    history_summary = summarize_chat_log(st.session_state.chat_log[:max_log])
-                else:
-                    history_summary = summarize_chat_log(list(reversed(st.session_state.chat_log))[:max_log])
-                answer = generate_response(user_q, ref_q, ref_a, history_summary)
-
+                answer = generate_response_with_history(
+                    user_q,
+                    st.session_state.chat_log,
+                    ref_q,
+                    ref_a
+                )
+                
         # 履歴に追加 & 保存処理
         st.session_state.chat_log.insert(0, (user_q, answer))
         append_to_csv(user_q, answer)
