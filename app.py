@@ -254,25 +254,32 @@ def summarize_chat_log(log, max_turns=5):
         return ""
 
 # 回答生成
-def generate_response(user_q, ref_q, ref_a, history_summary=""):
-    prompt = (
-        "あなたはLRAD（遠赤外線電子熱分解装置）の専門家です。\n"
-        "以下は過去の会話の要約です：\n"
-        f"{history_summary}\n\n"
-        "以下のFAQを参考に200文字以内で回答してください。\n\n"
-        f"FAQ質問: {ref_q}\nFAQ回答: {ref_a}\n\nユーザー質問: {user_q}"
+def generate_response_with_history(user_q, chat_log, ref_q, ref_a):
+    # systemプロンプト
+    system_prompt = (
+        "あなたはLRAD（遠赤外線電子熱分解装置）の専門家です。"
+        "以下のFAQを参考に200文字以内で回答してください。\n"
+        f"FAQ質問: {ref_q}\nFAQ回答: {ref_a}"
     )
+    # 過去の会話履歴をmessagesに追加
+    messages = [{"role": "system", "content": system_prompt}]
+    # 古い順に並べる
+    for q, a in reversed(chat_log[-5:]):  # 直近5ターン分
+        messages.append({"role": "user", "content": q})
+        messages.append({"role": "assistant", "content": a})
+    # 今回の質問
+    messages.append({"role": "user", "content": user_q})
+
     try:
         res = client.chat.completions.create(
             model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": prompt}],
+            messages=messages,
             temperature=0.3,
         )
         return res.choices[0].message.content.strip()
     except Exception as e:
         st.warning(f"AI回答生成に失敗しました: {e}")
         return "申し訳ありません、AIによる回答生成に失敗しました。"
-
 # セッションステート初期化
 if "chat_log" not in st.session_state:
     st.session_state.chat_log = []
