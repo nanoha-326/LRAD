@@ -21,6 +21,7 @@ except Exception as e:
 # Google Sheets保存（エラー処理追加）
 def append_to_gsheet(question, answer):
     try:
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         sheet_key = st.secrets["GoogleSheets"]["sheet_key"]
         service_account_info = st.secrets["GoogleSheets"]["service_account_info"]
         if isinstance(service_account_info, str):
@@ -33,7 +34,7 @@ def append_to_gsheet(question, answer):
         gc = gspread.authorize(creds)
         sh = gc.open_by_key(sheet_key)
         worksheet = sh.sheet1
-        worksheet.append_row([question, answer])
+        worksheet.append_row([timestamp,question, answer])
     except Exception as e:
         st.warning(f"Google Sheetsへの保存に失敗しました: {e}")
 
