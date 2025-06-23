@@ -7,6 +7,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 import os, random, re, unicodedata, json, base64
 import gspread
 from google.oauth2.service_account import Credentials
+from datetime import datetime
 
 # ページ設定
 st.set_page_config(page_title="LRADサポートチャット", layout="centered")
@@ -21,22 +22,29 @@ except Exception as e:
 # Google Sheets保存（エラー処理追加）
 def append_to_gsheet(question, answer):
     try:
+        from datetime import datetime  # 念のため関数内でも読み込む
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
         sheet_key = st.secrets["GoogleSheets"]["sheet_key"]
         service_account_info = st.secrets["GoogleSheets"]["service_account_info"]
+
         if isinstance(service_account_info, str):
             service_account_info = json.loads(service_account_info)
-        scope = [
-            "https://spreadsheets.google.com/feeds",
+
+        scopes = [
+            "https://www.googleapis.com/auth/spreadsheets",  # ✅ 新しい Sheets API スコープ
             "https://www.googleapis.com/auth/drive"
         ]
-        creds = Credentials.from_service_account_info(service_account_info, scopes=scope)
-        # ⑤ 認証 & 書き込み
+
+        creds = Credentials.from_service_account_info(service_account_info, scopes=scopes)
         gc = gspread.authorize(creds)
         sh = gc.open_by_key(sheet_key)
-        sh.sheet1.append_row([timestamp, question, answer], value_input_option="USER_ENTERED")
+        worksheet = sh.sheet1
+
+        worksheet.append_row([timestamp, question, answer], value_input_option="USER_ENTERED")
     except Exception as e:
-        st.warning(f"Google Sheetsへの保存に失敗しました: {e}")
+        st.error(f"Google Sheets への保存に失敗しました: {repr(e)}")
+
 
 # CSV保存（エラー処理追加）
 def append_to_csv(question, answer, path="chat_logs.csv"):
