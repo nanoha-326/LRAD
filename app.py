@@ -319,7 +319,7 @@ if send and user_q:
 
 # チャット履歴表示
 if st.session_state.chat_log:
-    st.subheader("📜 チャット履歴")
+    st.subheader(" チャット履歴")
     logs = st.session_state.chat_log if log_order == "新しい順" else list(reversed(st.session_state.chat_log))
     for q, a in logs:
         st.markdown(
