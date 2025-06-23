@@ -31,10 +31,10 @@ def append_to_gsheet(question, answer):
             "https://www.googleapis.com/auth/drive"
         ]
         creds = Credentials.from_service_account_info(service_account_info, scopes=scope)
+        # ⑤ 認証 & 書き込み
         gc = gspread.authorize(creds)
         sh = gc.open_by_key(sheet_key)
-        worksheet = sh.sheet1
-        worksheet.append_row([timestamp,question, answer])
+        sh.sheet1.append_row([timestamp, question, answer], value_input_option="USER_ENTERED")
     except Exception as e:
         st.warning(f"Google Sheetsへの保存に失敗しました: {e}")
 
