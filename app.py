@@ -14,6 +14,28 @@ import traceback
 st.set_page_config(page_title="LRADチャット", layout="centered")
 
 # --- 管理者認証部分 --- #
+# 初期セッション状態の設定
+if "is_admin" not in st.session_state:
+    st.session_state["is_admin"] = False
+if "auth_attempted" not in st.session_state:
+    st.session_state["auth_attempted"] = False
+
+# サイドバーに管理者ログイン切替
+with st.sidebar.expander("🔐 管理者ログイン"):
+    if not st.session_state["is_admin"]:
+        password = st.text_input("パスワードを入力", type="password")
+        if st.button("ログイン"):
+            if password == "mypassword":
+                st.session_state["is_admin"] = True
+                st.success("ログイン成功")
+            else:
+                st.session_state["auth_attempted"] = True
+                st.error("パスワードが間違っています")
+    else:
+        if st.button("ログアウト"):
+            st.session_state["is_admin"] = False
+            st.success("ログアウトしました")
+            
 CORRECT_PASSWORD = "mypassword"
 
 if "authenticated" not in st.session_state:
@@ -451,6 +473,11 @@ if st.session_state.chat_log and st.session_state.chat_log[-1][1] is None:
     append_to_csv(last_q, answer)
     append_to_gsheet(last_q, answer)
     st.experimental_rerun()
+
+# 管理者だけにInsightsページを動的読み込み
+if st.session_state["is_admin"]:
+    with st.expander("📊 管理者用 Insights ダッシュボード", expanded=True):
+        import admin.Insights
 
 if len(st.session_state.chat_log) > max_log:
     st.session_state.chat_log = st.session_state.chat_log[-max_log:]
