@@ -9,6 +9,33 @@ import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime
 
+# セキュリティ上は secrets.toml や環境変数で管理が推奨
+CORRECT_PASSWORD = "mypassword"  # ← ここを変更してください
+
+def password_check():
+    if "authenticated" not in st.session_state:
+        st.session_state["authenticated"] = False
+    if not st.session_state["authenticated"]:
+        with st.form("login_form"):
+            st.write("🔒 パスワードを入力してください")
+            password = st.text_input("パスワード", type="password")
+            submitted = st.form_submit_button("ログイン")
+            if submitted:
+                if password == CORRECT_PASSWORD:
+                    st.session_state["authenticated"] = True
+                    st.success("ログイン成功しました")
+                else:
+                    st.error("パスワードが間違っています")
+        st.stop()
+
+# ログインチェックの実行
+password_check()
+
+# ここから下はログイン後のアプリ内容
+st.title("チャットボットアプリ")
+st.write("ようこそ！これはパスワードで保護されたアプリです。")
+
+
 # ページ設定
 st.set_page_config(page_title="LRADサポートチャット", layout="centered")
 
