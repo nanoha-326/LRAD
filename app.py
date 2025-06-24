@@ -60,7 +60,7 @@ password_check()
 # 「ようこそ」演出
 if st.session_state["show_welcome"]:
     elapsed = time.time() - st.session_state["welcome_start_time"]
-    if elapsed < 2.5:
+    if elapsed < 5.0:
         st.markdown(
             f"""
             <style>
