@@ -22,8 +22,10 @@ if "show_welcome" not in st.session_state:
     st.session_state["show_welcome"] = False
 if "welcome_message" not in st.session_state:
     st.session_state["welcome_message"] = ""
+if "welcome_start_time" not in st.session_state:
+    st.session_state["welcome_start_time"] = None
 
-# ようこそメッセージの候補リスト
+# 認証成功時のようこそ演出
 WELCOME_MESSAGES = [
     "ようこそ！LRADチャットボットへ。",
     "いらっしゃいませ。LRADチャットボットをご利用ください。",
@@ -44,47 +46,49 @@ def password_check():
                 if password == CORRECT_PASSWORD:
                     st.session_state["authenticated"] = True
                     st.session_state["show_welcome"] = True
-                    # ログイン成功時にランダムにメッセージをセット
+                    st.session_state["welcome_start_time"] = time.time()
                     st.session_state["welcome_message"] = random.choice(WELCOME_MESSAGES)
                     st.experimental_rerun()
                 else:
                     st.error("パスワードが間違っています")
-        st.stop()  # ❗ ログイン失敗・未ログイン時は停止
+        st.stop() # ❗ ログイン失敗・未ログイン時は停止
     
 
 # ログインチェック
 password_check()
 
-# 「ようこそ」演出が必要なとき
+# 「ようこそ」演出
 if st.session_state["show_welcome"]:
-    st.markdown(
-        f"""
-        <style>
-        .fade-in-text {{
-            font-size: 48px;
-            text-align: center;
-            margin-top: 30vh;
-            animation: fadein 2s;
-        }}
-        @keyframes fadein {{
-            from {{ opacity: 0; }}
-            to {{ opacity: 1; }}
-        }}
-        </style>
-        <div class="fade-in-text">{st.session_state["welcome_message"]}</div>
-        """,
-        unsafe_allow_html=True
-    )
-    time.sleep(2.5)
-    st.session_state["show_welcome"] = False
-    st.experimental_rerun()
+    elapsed = time.time() - st.session_state["welcome_start_time"]
+    if elapsed < 2.5:
+        st.markdown(
+            f"""
+            <style>
+            .fade-in-text {{
+                font-size: 48px;
+                text-align: center;
+                margin-top: 30vh;
+                animation: fadein 2s;
+            }}
+            @keyframes fadein {{
+                from {{ opacity: 0; }}
+                to {{ opacity: 1; }}
+            }}
+            </style>
+            <div class="fade-in-text">{st.session_state["welcome_message"]}</div>
+            """,
+            unsafe_allow_html=True,
+        )
+        # 時間経過を見て自動的に再実行（ユーザーが何か操作しなくても）
+        st.experimental_rerun()
+    else:
+        # 2.5秒経過したら演出終了
+        st.session_state["show_welcome"] = False
 
-# ✅ ここから先は認証済みのときだけ実行される
-
-# チャットボット画面
-st.title("💬 LRADサポートチャット")
-st.write("ご質問をどうぞ")
-# ここにチャットUIやFAQなどの機能を追加
+# チャット画面（認証済みなら表示）
+if st.session_state["authenticated"] and not st.session_state["show_welcome"]:
+    st.title("💬 LRADサポートチャット")
+    st.write("ご質問をどうぞ")
 
 
 
