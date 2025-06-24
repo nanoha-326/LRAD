@@ -256,31 +256,6 @@ def load_faq_common(path="faq_common.csv"):
         st.error(f"よくある質問ファイルの読み込みに失敗しました: {e}")
         return pd.DataFrame(columns=["質問", "回答"])
 
-
-# ヘッダー画像
-def get_base64_image(path):
-    try:
-        with open(path, "rb") as img_file:
-            return base64.b64encode(img_file.read()).decode()
-    except Exception as e:
-        st.warning(f"画像の読み込みに失敗しました: {e}")
-        return ""
-
-image_base64 = get_base64_image("LRADimg.png")
-
-st.markdown(
-    f"""
-    <div style="display:flex; align-items:center;" class="chat-header">
-        <img src="data:image/png;base64,{image_base64}"
-             width="{selected_img}px" style="margin-right:10px;">
-        <h1 style="margin:0; font-size:40px; font-weight:bold;">LRADサポートチャット</h1>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-st.caption("※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。")
-
 # サイドバー設定
 st.sidebar.title("⚙️ 表示設定")
 font_size = st.sidebar.selectbox("文字サイズを選んでください", ["小", "中", "大"])
@@ -305,9 +280,33 @@ if st.sidebar.button("FAQ埋め込みキャッシュ再計算"):
 if st.sidebar.button("FAQキャッシュクリア"):
     st.cache_data.clear()
     st.success("FAQキャッシュをクリアしました。")
-    st.experimental_rerun()
 
-inject_custom_css(selected_font)
+    st.experimental_rerun()
+    
+# ヘッダー画像
+def get_base64_image(path):
+    try:
+        with open(path, "rb") as img_file:
+            return base64.b64encode(img_file.read()).decode()
+    except Exception as e:
+        st.warning(f"画像の読み込みに失敗しました: {e}")
+        return ""
+
+image_base64 = get_base64_image("LRADimg.png")
+
+st.markdown(
+    f"""
+    <div style="display:flex; align-items:center;" class="chat-header">
+        <img src="data:image/png;base64,{image_base64}"
+             width="{selected_img}px" style="margin-right:10px;">
+        <h1 style="margin:0; font-size:40px; font-weight:bold;">LRADサポートチャット</h1>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+st.caption("※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。")
+
 
 # FAQ・共通FAQ読み込み
 faq_df = load_faq_all()
