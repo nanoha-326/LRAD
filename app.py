@@ -104,30 +104,6 @@ if st.session_state["authenticated"] and not st.session_state["show_welcome"]:
     st.title("💬 LRADサポートチャット")
     st.write("ご質問をどうぞ")
 
-# ヘッダー画像
-def get_base64_image(path):
-    try:
-        with open(path, "rb") as img_file:
-            return base64.b64encode(img_file.read()).decode()
-    except Exception as e:
-        st.warning(f"画像の読み込みに失敗しました: {e}")
-        return ""
-
-image_base64 = get_base64_image("LRADimg.png")
-
-st.markdown(
-    f"""
-    <div style="display:flex; align-items:center;" class="chat-header">
-        <img src="data:image/png;base64,{image_base64}"
-             width="{selected_img}px" style="margin-right:10px;">
-        <h1 style="margin:0; font-size:40px; font-weight:bold;">LRADサポートチャット</h1>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-st.caption("※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。")
-
 # OpenAIキー
 try:
     client = OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
@@ -279,6 +255,31 @@ def load_faq_common(path="faq_common.csv"):
     except Exception as e:
         st.error(f"よくある質問ファイルの読み込みに失敗しました: {e}")
         return pd.DataFrame(columns=["質問", "回答"])
+
+
+# ヘッダー画像
+def get_base64_image(path):
+    try:
+        with open(path, "rb") as img_file:
+            return base64.b64encode(img_file.read()).decode()
+    except Exception as e:
+        st.warning(f"画像の読み込みに失敗しました: {e}")
+        return ""
+
+image_base64 = get_base64_image("LRADimg.png")
+
+st.markdown(
+    f"""
+    <div style="display:flex; align-items:center;" class="chat-header">
+        <img src="data:image/png;base64,{image_base64}"
+             width="{selected_img}px" style="margin-right:10px;">
+        <h1 style="margin:0; font-size:40px; font-weight:bold;">LRADサポートチャット</h1>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+st.caption("※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。")
 
 # サイドバー設定
 st.sidebar.title("⚙️ 表示設定")
