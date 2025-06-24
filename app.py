@@ -13,10 +13,8 @@ import time
 # ページ設定
 st.set_page_config(page_title="LRADチャット", layout="centered")
 
-# パスワード
 CORRECT_PASSWORD = "mypassword"
 
-# セッション状態の初期化
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
 if "show_welcome" not in st.session_state:
@@ -27,14 +25,18 @@ if "welcome_message" not in st.session_state:
 # ウェルカムメッセージ候補（日本語＋英語混合）
 WELCOME_MESSAGES = [
     "ようこそ、LRADチャットボットへ。",
-    "あなたの疑問にお応えしますご質問をどうぞ。",
-    "さあ、はじめましょう。",
+    "いらっしゃいませ。ご質問をどうぞ。",
+    "あなたの疑問にお応えします。",
+    "さあ、はじめましょう。LRADがサポートします。",
     "Welcome to the LRAD Chat Assistant.",
     "Let’s solve it together.",
     "Your questions, our answers.",
+    "Powered by LRAD. Driven by Innovation.",
+    "解決への最短ルート、それがLRAD。",
+    "Let innovation answer.",
 ]
 
-# 認証チェック処理
+# ログイン処理
 def password_check():
     if not st.session_state["authenticated"]:
         with st.form("login_form"):
@@ -49,7 +51,7 @@ def password_check():
                     st.experimental_rerun()
                 else:
                     st.error("パスワードが間違っています")
-        st.stop()  # ❗ ここでログイン失敗・未ログイン時は強制停止
+        st.stop()
 
 # ログインチェック
 password_check()
@@ -77,8 +79,10 @@ if st.session_state["show_welcome"]:
     time.sleep(2.5)
     st.session_state["show_welcome"] = False
     st.experimental_rerun()
-    
-# ✅ ここから先は認証済みのときだけ実行される
+
+# ✅ ここからチャット画面
+st.title("💬 LRADサポートチャット")
+st.write("ご質問をどうぞ")
 
 # OpenAIキー
 try:
