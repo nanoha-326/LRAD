@@ -26,11 +26,10 @@ if "fade_out" not in st.session_state:
 
 WELCOME_MESSAGES = [
     "ようこそ！LRADチャットボットへ。",
-    "いらっしゃいませ。LRADチャットボットをご利用ください。",
-    "LRADチャットボットへようこそ！",
-    "ご質問お待ちしております！LRADチャットボットです。",
-    "Welcome to the LRAD Chat Assistant!",
-    "Let’s solve your questions together with LRAD!",
+    "あなたの疑問にお応えします。",
+    "LRAD専用チャットボットです。",
+    "Welcome to the LRAD Chat Assistant.",
+    "Your questions, our answers.",
 ]
 
 def password_check():
