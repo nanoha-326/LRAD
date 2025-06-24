@@ -434,16 +434,24 @@ if "chat_log" not in st.session_state:
 st.markdown("""
 <style>
 .chatgpt-box textarea {
-    border: 1px solid #ccc;
+    border: none;
     border-radius: 12px;
     padding: 12px 16px;
     font-size: 14px;
     width: 100%;
     height: 100px;
     resize: vertical;
-    background-color: #f9f9f9;
+    background-color: #f2f2f2;  /* ←背景はほんのりグレー */
     color: #333;
     font-family: 'Segoe UI', sans-serif;
+    outline: none;
+    box-shadow: none;
+}
+
+.chatgpt-box textarea:focus {
+    outline: none;
+    box-shadow: none;
+    background-color: #eaeaea;  /* ←フォーカス時の背景変化もやさしく */
 }
 
 .chatgpt-box button {
@@ -462,7 +470,6 @@ st.markdown("""
 }
 </style>
 """, unsafe_allow_html=True)
-
 
 # ChatGPT風入力フォーム表示
 with st.form(key="chat_form", clear_on_submit=True):
