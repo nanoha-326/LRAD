@@ -441,7 +441,7 @@ st.markdown("""
     padding: 12px 16px;
     font-size: 14px;
     border-radius: 12px;
-    background-color: #f2f2f2;
+    background-color: white;
     color: #333;
     font-family: 'Segoe UI', sans-serif;
     resize: vertical;
@@ -449,7 +449,7 @@ st.markdown("""
 }
 
 .chatgpt-box textarea::placeholder {
-    color: #aaa;
+    color: white;
 }
 
 .chatgpt-box button {
@@ -475,7 +475,7 @@ st.markdown("""
 with st.form(key="chat_form", clear_on_submit=True):
     st.markdown('<div class="chatgpt-box">', unsafe_allow_html=True)
 
-    user_q = st.text_area("", placeholder="メッセージを入力...", height=100, key="user_input")
+    user_q = st.text_area("", placeholder="質問をどうぞ...", height=100, key="user_input")
 
     send = st.form_submit_button("送信")
 
