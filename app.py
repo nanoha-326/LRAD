@@ -309,7 +309,15 @@ st.caption("※このチャットボットはFAQとAIをもとに応答します
 faq_df = load_faq_all()
 common_faq_df = load_faq_common()
 
-# よくある質問表示
+# よくある質問表示（上に薄い見出し）
+st.markdown(
+    """
+    <h3 style='color: rgba(0, 0, 0, 0.3); font-weight: 600;'>💡 よくある質問（ランダム表示）</h3>
+    """,
+    unsafe_allow_html=True
+)
+
+# よくある質問をランダムに表示
 def display_random_common_faqs(common_faq_df, n=1):
     if len(common_faq_df) == 0:
         st.info("よくある質問がありません。")
@@ -319,16 +327,20 @@ def display_random_common_faqs(common_faq_df, n=1):
         question = getattr(row, "質問", "（質問が不明です）")
         answer = getattr(row, "回答", "（回答が不明です）")
         st.markdown(
-            """
-            <div class="chat-text"><b>Q. {question}</b><br>A. {answer}</div><hr>',
-            <h3 style='color: rgba(0, 0, 0, 0.3); font-weight: 600;'>💡 よくある質問（ランダム表示）</h3>
+            f"""
+            <div class="chat-text">
+                <b>Q. {question}</b><br>
+                A. {answer}
+            </div>
+            <hr>
             """,
             unsafe_allow_html=True
         )
 
-st.markdown("### 💡 よくある質問（ランダム表示）")
+# 表示関数の実行
 display_random_common_faqs(common_faq_df, n=1)
 st.divider()
+
 
 # 類似質問検索
 def find_top_similar(q, df, k=1):
