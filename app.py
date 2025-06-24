@@ -327,7 +327,7 @@ def display_random_common_faqs(common_faq_df, n=1):
         )
 
 st.markdown("### 💡 よくある質問（ランダム表示）")
-display_random_common_faqs(common_faq_df, n=3)
+display_random_common_faqs(common_faq_df, n=1)
 st.divider()
 
 # 類似質問検索
