@@ -1,4 +1,4 @@
-# LRADサポートチャット（管理者認証＆Insights非表示対応）
+# LRADサポートチャット（改良版：エラー処理・UI改善・キャッシュ管理）
 import streamlit as st
 from openai import OpenAI
 import pandas as pd
@@ -13,13 +13,19 @@ import traceback
 
 st.set_page_config(page_title="LRADチャット", layout="centered")
 
-# --- 管理者認証部分 --- #
+def symbol_rate(text):
+    if not text:
+        return 0
+    total_len = len(text)
+    symbols = re.findall(r"[^\wぁ-んァ-ン一-龥]", text)
+    return len(symbols) / total_len
+
+
+# パスワード設定
 CORRECT_PASSWORD = "mypassword"
 
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
-if "is_admin" not in st.session_state:
-    st.session_state["is_admin"] = False
 if "show_welcome" not in st.session_state:
     st.session_state["show_welcome"] = False
 if "welcome_message" not in st.session_state:
@@ -44,7 +50,6 @@ def password_check():
             if submitted:
                 if password == CORRECT_PASSWORD:
                     st.session_state["authenticated"] = True
-                    st.session_state["is_admin"] = True
                     st.session_state["show_welcome"] = True
                     st.session_state["welcome_message"] = random.choice(WELCOME_MESSAGES)
                     st.session_state["fade_out"] = False
@@ -101,28 +106,338 @@ if st.session_state["show_welcome"]:
         st.session_state["show_welcome"] = False
         st.experimental_rerun()
 
-# --- ページ選択（タブ切替）部分 --- #
-if st.session_state["is_admin"]:
-    pages = ["チャット", "Insights"]
-else:
-    pages = ["チャット"]
 
-page = st.sidebar.selectbox("ページ選択", pages)
+# OpenAIキー取得（エラー表示強化）
+try:
+    client = OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
+except Exception as e:
+    st.error("OpenAI APIキーの取得に失敗しました。st.secretsの設定を確認してください。")
+    st.error(traceback.format_exc())
+    st.stop()
 
-# --- ページ振り分け処理 --- #
-def run_chat_page():
-    st.title("LRADサポートチャット")
-    st.caption("※このチャットボットはFAQとAIをもとに応答します。")
-    st.write("（ここにチャット処理を実装）")
+# Google Sheets保存（エラー処理強化）
+def append_to_gsheet(question, answer):
+    try:
+        # 日本時間を設定（UTC+9）
+        JST = timezone(timedelta(hours=9))
+        timestamp = datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S")
+        
+        sheet_key = st.secrets["GoogleSheets"]["sheet_key"]
+        service_account_info = st.secrets["GoogleSheets"]["service_account_info"]
+        if isinstance(service_account_info, str):
+            service_account_info = json.loads(service_account_info)
+        scopes = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive"
+        ]
+        creds = Credentials.from_service_account_info(service_account_info, scopes=scopes)
+        gc = gspread.authorize(creds)
+        sh = gc.open_by_key(sheet_key)
+        worksheet = sh.sheet1
+        worksheet.append_row([timestamp, question, answer], value_input_option="USER_ENTERED")
+    except Exception as e:
+        st.error(f"Google Sheets への保存に失敗しました: {repr(e)}")
 
-def run_insights_page():
-    if not st.session_state.get("is_admin", False):
-        st.error("このページへのアクセス権がありません。")
-        st.stop()
-    st.title("📊 LRADサポートチャット インサイト分析")
-    st.write("（ここにInsightsページのコードを実装）")
 
-if page == "チャット":
-    run_chat_page()
-elif page == "Insights":
-    run_insights_page()
+def append_to_csv(question, answer, path="chat_logs.csv"):
+    try:
+        df = pd.DataFrame([{ "timestamp": pd.Timestamp.now().isoformat(), "question": question, "answer": answer }])
+        if not os.path.exists(path):
+            df.to_csv(path, index=False)
+        else:
+            df.to_csv(path, mode='a', header=False, index=False)
+    except Exception as e:
+        st.warning(f"CSVへの保存に失敗しました: {e}")
+
+def get_base64_image(path):
+    try:
+        with open(path, "rb") as img_file:
+            return base64.b64encode(img_file.read()).decode()
+    except Exception as e:
+        st.warning(f"画像の読み込みに失敗しました: {e}")
+        return ""
+
+image_base64 = get_base64_image("LRADimg.png")
+
+# 変更後（スマホ対応レスポンシブ付き）
+st.markdown(
+    f"""
+    <style>
+    .chat-header h1 {{
+        font-size: 40px !important;
+    }}
+    .chat-header img {{
+        width: 80px !important;
+        margin-right: 10px;
+    }}
+    @media screen and (max-width: 600px) {{
+        .chat-header h1 {{
+            font-size: 24px !important;
+        }}
+        .chat-header img {{
+            width: 48px !important;
+        }}
+    }}
+    </style>
+    <div style="display:flex; align-items:center;" class="chat-header">
+        <img src="data:image/png;base64,{image_base64}" alt="LRADロゴ">
+        <h1 style="margin:0; font-weight:bold;">LRADサポートチャット</h1>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+
+st.caption("※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。")
+
+
+def get_embedding(text, model="text-embedding-3-small"):
+    text = text.replace("\n", " ")
+    try:
+        res = client.embeddings.create(input=[text], model=model)
+        return res.data[0].embedding
+    except Exception as e:
+        st.error(f"埋め込み取得に失敗しました: {e}")
+        return np.zeros(1536)
+
+def is_valid_input(text: str) -> bool:
+    text = text.strip()
+    if not (3 <= len(text) <= 300):
+        return False
+    if len(re.findall(r'[^A-Za-z0-9ぁ-んァ-ヶ一-龠\s]', text)) / len(text) > 0.3:
+        return False
+    try:
+        unicodedata.normalize("NFKC", text).encode("utf-8")
+    except UnicodeError:
+        return False
+    return True
+
+def recalc_faq_embeddings(path="faq_all.csv", cached="faq_all_with_embed.csv"):
+    try:
+        df = pd.read_csv(path)
+        with st.spinner("全FAQへ埋め込み計算中…（再計算）"):
+            df["embedding"] = df["質問"].apply(get_embedding)
+        df["embedding"] = df["embedding"].apply(lambda x: json.dumps(x.tolist()) if hasattr(x, "tolist") else x)
+        df.to_csv(cached, index=False)
+        st.success("FAQ埋め込みの再計算が完了しました。")
+    except Exception as e:
+        st.error(f"FAQ埋め込み再計算に失敗しました: {e}")
+
+def get_modified_time(path):
+    try:
+        return os.path.getmtime(path)
+    except:
+        return 0
+
+@st.cache_data(show_spinner=False)
+def load_faq_all(path="faq_all.csv", cached="faq_all_with_embed.csv", mtime=None):
+    def parse_embedding(val):
+        if isinstance(val, str):
+            try:
+                return np.array(json.loads(val))
+            except Exception:
+                pass
+        elif isinstance(val, list) or isinstance(val, np.ndarray):
+            return np.array(val)
+        return np.zeros(1536)
+
+    if os.path.exists(cached):
+        try:
+            df = pd.read_csv(cached)
+            df["embedding"] = df["embedding"].apply(parse_embedding)
+        except Exception as e:
+            st.warning(f"キャッシュ読み込みに失敗: {e}。再計算をお試しください。")
+            df = pd.read_csv(path)
+            with st.spinner("全FAQへ埋め込み計算中…（初回のみ）"):
+                df["embedding"] = df["質問"].apply(get_embedding)
+            df["embedding"] = df["embedding"].apply(lambda x: json.dumps(x.tolist()) if hasattr(x, "tolist") else x)
+            df.to_csv(cached, index=False)
+            df["embedding"] = df["embedding"].apply(parse_embedding)
+    else:
+        df = pd.read_csv(path)
+        with st.spinner("全FAQへ埋め込み計算中…（初回のみ）"):
+            df["embedding"] = df["質問"].apply(get_embedding)
+        df["embedding"] = df["embedding"].apply(lambda x: json.dumps(x.tolist()) if hasattr(x, "tolist") else x)
+        df.to_csv(cached, index=False)
+        df["embedding"] = df["embedding"].apply(parse_embedding)
+    return df
+
+mtime = get_modified_time("faq_all.csv") + get_modified_time("faq_all_with_embed.csv")
+faq_df = load_faq_all(path="faq_all.csv", cached="faq_all_with_embed.csv", mtime=mtime)
+
+@st.cache_data(show_spinner=False)
+def load_faq_common(path="faq_common.csv"):
+    try:
+        df = pd.read_csv(path, encoding="utf-8-sig")
+        df.columns = df.columns.str.strip()
+        return df
+    except Exception as e:
+        st.error(f"よくある質問ファイルの読み込みに失敗しました: {e}")
+        return pd.DataFrame(columns=["質問", "回答"])
+
+common_faq_df = load_faq_common()
+
+st.sidebar.title("⚙️ 表示設定")
+font_size = st.sidebar.selectbox("文字サイズを選んでください", ["小", "中", "大"])
+font_size_map = {"小": "14px", "中": "18px", "大": "24px"}
+img_width_map = {"小": 60, "中": 80, "大": 110}
+selected_font = font_size_map[font_size]
+selected_img = img_width_map[font_size]
+
+max_log = st.sidebar.slider("チャット履歴の保存件数", min_value=10, max_value=200, value=100, step=10)
+
+if st.sidebar.button("FAQ埋め込みキャッシュ再計算"):
+    recalc_faq_embeddings()
+    st.cache_data.clear()
+    st.experimental_rerun()
+
+if st.sidebar.button("FAQキャッシュクリア"):
+    st.cache_data.clear()
+    st.success("FAQキャッシュをクリアしました。")
+    st.experimental_rerun()
+
+st.markdown(
+    """
+    <style>
+    .simple-faq-container {
+        background-color: #f9f9f9;
+        padding: 10px 16px;
+        border-radius: 8px;
+        margin: 6px 0 24px 0;
+        font-size: 13px;
+        color: #555;
+    }
+    .simple-faq-question {
+        font-weight: 600;
+        margin-bottom: 4px;
+        color: #444;
+    }
+    .simple-faq-answer {
+        margin-left: 1em;
+    }
+    .faq-heading {
+        font-size: 14px;
+        color: #444;
+        font-weight: 600;
+        margin: 8px 0;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+st.markdown("<div class='faq-heading'>💡 よくある質問</div>", unsafe_allow_html=True)
+
+def display_random_common_faqs(common_faq_df, n=1):
+    if len(common_faq_df) == 0:
+        st.info("よくある質問がありません。")
+        return
+    sampled = common_faq_df.sample(min(n, len(common_faq_df)))
+    for row in sampled.itertuples():
+        question = getattr(row, "質問", "（質問が不明です）")
+        answer = getattr(row, "回答", "（回答が不明です）")
+        st.markdown(
+            f"""
+            <div class="simple-faq-container">
+                <div class="simple-faq-question">Q. {question}</div>
+                <div class="simple-faq-answer">A. {answer}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+display_random_common_faqs(common_faq_df, n=1)
+st.divider()
+
+def find_top_similar(q, df, k=1):
+    if len(q.strip()) < 2:
+        return None, None
+    q_vec = get_embedding(q)
+    try:
+        faq_vecs = np.stack(df["embedding"].to_numpy())
+        sims = cosine_similarity([q_vec], faq_vecs)[0]
+        idx = sims.argsort()[::-1][:k][0]
+        return df.iloc[idx]["質問"], df.iloc[idx]["回答"]
+    except Exception as e:
+        st.warning(f"類似質問検索に失敗しました: {e}")
+        return None, None
+
+def summarize_chat_log(log, max_turns=5):
+    if not log:
+        return ""
+    recent = log[:max_turns]
+    prompt = "次の会話の要点を200文字以内で要約してください。\n\n"
+    for q, a in recent:
+        prompt += f"ユーザー: {q}\nAI: {a}\n"
+    try:
+        res = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+        )
+        return res.choices[0].message.content.strip()
+    except Exception as e:
+        st.warning(f"要約生成に失敗しました: {e}")
+        return ""
+
+def generate_response_with_history(user_q, chat_log, ref_q, ref_a):
+    system_prompt = (
+        "あなたはLRAD（遠赤外線電子熱分解装置）の専門家です。"
+        "以下のFAQを参考に200文字以内で回答してください。\n"
+        f"FAQ質問: {ref_q}\nFAQ回答: {ref_a}"
+    )
+    messages = [{"role": "system", "content": system_prompt}]
+    for q, a in reversed(chat_log[-5:]):
+        if a is None:
+            continue
+        messages.append({"role": "user", "content": q})
+        messages.append({"role": "assistant", "content": a})
+    messages.append({"role": "user", "content": user_q})
+
+    try:
+        res = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=messages,
+            temperature=0.3,
+        )
+        return res.choices[0].message.content.strip()
+    except Exception as e:
+        st.error(f"AI回答生成に失敗しました: {e}")
+        st.error(traceback.format_exc())
+        return "申し訳ありません、AIによる回答生成に失敗しました。"
+
+if "chat_log" not in st.session_state:
+    st.session_state.chat_log = []
+
+# 履歴があるなら順序によって並べ替え表示
+logs_to_show = st.session_state.chat_log
+
+for q, a in logs_to_show:
+    st.chat_message("user").write(q)
+    if a:
+        st.chat_message("assistant").write(a)
+
+user_q = st.chat_input("質問をどうぞ...")
+
+if user_q:
+    if not is_valid_input(user_q):
+        st.warning("入力が不正です。3〜300文字、記号率30%未満にしてください。")
+    else:
+        st.session_state.chat_log.append((user_q, None))
+        st.experimental_rerun()
+
+if st.session_state.chat_log and st.session_state.chat_log[-1][1] is None:
+    last_q = st.session_state.chat_log[-1][0]
+    ref_q, ref_a = find_top_similar(last_q, faq_df)
+    if ref_q is None:
+        answer = "申し訳ありません、関連FAQが見つかりませんでした。"
+    else:
+        with st.spinner("回答生成中…"):
+            answer = generate_response_with_history(last_q, st.session_state.chat_log, ref_q, ref_a)
+    st.session_state.chat_log[-1] = (last_q, answer)
+    append_to_csv(last_q, answer)
+    append_to_gsheet(last_q, answer)
+    st.experimental_rerun()
+
+if len(st.session_state.chat_log) > max_log:
+    st.session_state.chat_log = st.session_state.chat_log[-max_log:]
