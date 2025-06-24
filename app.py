@@ -101,8 +101,6 @@ if st.session_state["show_welcome"]:
         st.experimental_rerun()
 
 if st.session_state["authenticated"] and not st.session_state["show_welcome"]:
-    st.title("💬 LRADサポートチャット")
-    st.write("ご質問をどうぞ")
 
 # OpenAIキー
 try:
