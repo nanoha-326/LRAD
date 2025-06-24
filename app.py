@@ -1,4 +1,4 @@
-# LRADサポートチャット（改良版：エラー処理・UI改善・キャッシュ管理）
+# LRADサポートチャット（管理者認証＆Insights非表示対応）
 import streamlit as st
 from openai import OpenAI
 import pandas as pd
@@ -13,19 +13,13 @@ import traceback
 
 st.set_page_config(page_title="LRADチャット", layout="centered")
 
-def symbol_rate(text):
-    if not text:
-        return 0
-    total_len = len(text)
-    symbols = re.findall(r"[^\wぁ-んァ-ン一-龥]", text)
-    return len(symbols) / total_len
-
-
-# パスワード設定
+# --- 管理者認証部分 --- #
 CORRECT_PASSWORD = "mypassword"
 
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
+if "is_admin" not in st.session_state:
+    st.session_state["is_admin"] = False
 if "show_welcome" not in st.session_state:
     st.session_state["show_welcome"] = False
 if "welcome_message" not in st.session_state:
@@ -42,6 +36,25 @@ WELCOME_MESSAGES = [
 ]
 
 def password_check():
+    if not st.session_state["authenticated"]:
+        with st.form("login_form"):
+            st.title("ログイン")
+            password = st.text_input("パスワードを入力", type="password")
+            submitted = st.form_submit_button("ログイン")
+            if submitted:
+                if password == CORRECT_PASSWORD:
+                    st.session_state["authenticated"] = True
+                    st.session_state["is_admin"] = True
+                    st.session_state["show_welcome"] = True
+                    st.session_state["welcome_message"] = random.choice(WELCOME_MESSAGES)
+                    st.session_state["fade_out"] = False
+                    st.experimental_rerun()
+                else:
+                    st.error("パスワードが間違っています")
+        st.stop()
+
+password_check()
+
     if not st.session_state["authenticated"]:
         with st.form("login_form"):
             st.title("ログイン")
@@ -106,6 +119,31 @@ if st.session_state["show_welcome"]:
         st.session_state["show_welcome"] = False
         st.experimental_rerun()
 
+# --- ページ選択（タブ切替）部分 --- #
+if st.session_state["is_admin"]:
+    pages = ["チャット", "Insights"]
+else:
+    pages = ["チャット"]
+
+page = st.sidebar.selectbox("ページ選択", pages)
+
+# --- ページ振り分け処理 --- #
+def run_chat_page():
+    st.title("LRADサポートチャット")
+    st.caption("※このチャットボットはFAQとAIをもとに応答します。")
+    st.write("（ここにチャット処理を実装）")
+
+def run_insights_page():
+    if not st.session_state.get("is_admin", False):
+        st.error("このページへのアクセス権がありません。")
+        st.stop()
+    st.title("📊 LRADサポートチャット インサイト分析")
+    st.write("（ここにInsightsページのコードを実装）")
+
+if page == "チャット":
+    run_chat_page()
+elif page == "Insights":
+    run_insights_page()
 
 # OpenAIキー取得（エラー表示強化）
 try:
