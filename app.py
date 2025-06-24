@@ -7,7 +7,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 import os, random, re, unicodedata, json, base64
 import gspread
 from google.oauth2.service_account import Credentials
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import time
 import traceback
 
@@ -118,7 +118,10 @@ except Exception as e:
 # Google Sheets保存（エラー処理強化）
 def append_to_gsheet(question, answer):
     try:
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        # 日本時間を設定（UTC+9）
+        JST = timezone(timedelta(hours=9))
+        timestamp = datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S")
+        
         sheet_key = st.secrets["GoogleSheets"]["sheet_key"]
         service_account_info = st.secrets["GoogleSheets"]["service_account_info"]
         if isinstance(service_account_info, str):
