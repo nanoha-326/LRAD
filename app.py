@@ -22,7 +22,7 @@ if "authenticated" not in st.session_state:
 if "show_welcome" not in st.session_state:
     st.session_state["show_welcome"] = False
 
-# パスワード認証関数
+# 認証チェック処理
 def password_check():
     if not st.session_state["authenticated"]:
         with st.form("login_form"):
@@ -36,39 +36,41 @@ def password_check():
                     st.experimental_rerun()
                 else:
                     st.error("パスワードが間違っています")
-                    st.stop()
-    elif st.session_state["show_welcome"]:
-        # CSSでフェード演出
-        st.markdown(
-            """
-            <style>
-            .fade-in-text {
-                font-size: 48px;
-                text-align: center;
-                margin-top: 30vh;
-                animation: fadein 2s;
-            }
-            @keyframes fadein {
-                from { opacity: 0; }
-                to { opacity: 1; }
-            }
-            </style>
-            <div class="fade-in-text">ようこそ！LRADチャットボットへ。</div>
-            """,
-            unsafe_allow_html=True
-        )
-        # 少し待ってからチャット画面に遷移
-        time.sleep(2.5)
-        st.session_state["show_welcome"] = False
-        st.experimental_rerun()
+        st.stop()  # ❗ ここでログイン失敗・未ログイン時は強制停止
 
 # ログインチェック
 password_check()
 
-# チャット画面（ここからが本体）
+# 「ようこそ」演出が必要なとき
+if st.session_state["show_welcome"]:
+    st.markdown(
+        """
+        <style>
+        .fade-in-text {
+            font-size: 48px;
+            text-align: center;
+            margin-top: 30vh;
+            animation: fadein 2s;
+        }
+        @keyframes fadein {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        </style>
+        <div class="fade-in-text">ようこそ！LRADチャットボットへ。</div>
+        """,
+        unsafe_allow_html=True
+    )
+    time.sleep(2.5)
+    st.session_state["show_welcome"] = False
+    st.experimental_rerun()
+
+# ✅ ここから先は認証済みのときだけ実行される
+
+# チャットボット画面
 st.title("💬 LRADサポートチャット")
-st.write("ご質問をどうぞ。")
-# ここにチャットボットUIやFAQ機能を追加
+st.write("ご質問をどうぞ")
+# ここにチャットUIやFAQなどの機能を追加
 
 
 # OpenAIキー
