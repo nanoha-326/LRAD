@@ -441,53 +441,52 @@ if "chat_log" not in st.session_state:
     st.session_state.chat_log = []
 
 # チャット履歴表示（過去メッセージ）
-for message in st.session_state.chat_log:
-    st.chat_message("user").write(message)
+for q, a in st.session_state.chat_log:
+    st.chat_message("user").write(q)
+    if a:
+        st.chat_message("assistant").write(a)
 
 # ChatGPT風の入力フォーム（1行＋シンプル）
 user_q = st.chat_input("質問をどうぞ...")
 
 if user_q:
-    # 入力があった場合、まずログに追加
-    st.session_state.chat_log.append(user_q)
-    st.chat_message("user").write(user_q)
-    
-    # 入力のバリデーション例（長さ・記号率チェックは関数化推奨）
+    # 入力バリデーション
     if len(user_q) < 3 or len(user_q) > 300 or symbol_rate(user_q) >= 0.3:
         st.warning("入力が不正です。3〜300文字、記号率30%未満にしてください。")
     else:
-        # FAQ類似質問検索
-        ref_q, ref_a = find_top_similar(user_q, faq_df)
-        if ref_q is None:
-            answer = "申し訳ありません、関連FAQが見つかりませんでした。"
-        else:
-            with st.spinner("回答生成中…"):
-                answer = generate_response_with_history(
-                    user_q,
-                    st.session_state.chat_log,
-                    ref_q,
-                    ref_a
-                )
-        # AI応答表示
-        st.chat_message("assistant").write(answer)
+        # いったん質問だけ仮登録（回答なし）
+        st.session_state.chat_log.append( (user_q, None) )
+        st.experimental_rerun()  # 入力後すぐ再実行で回答生成へ
 
-                
-        # 履歴に追加 & 保存処理
-        st.session_state.chat_log.insert(0, (user_q, answer))
-        append_to_csv(user_q, answer)
-        append_to_gsheet(user_q, answer)
+# ここで回答がない質問があれば処理
+# （常に最新質問は末尾にある想定）
 
-        # 履歴の最大件数制御
-        if len(st.session_state.chat_log) > max_log:
-            st.session_state.chat_log = st.session_state.chat_log[:max_log]
-        st.experimental_rerun()
+if st.session_state.chat_log and st.session_state.chat_log[-1][1] is None:
+    last_q = st.session_state.chat_log[-1][0]
+    ref_q, ref_a = find_top_similar(last_q, faq_df)
+    if ref_q is None:
+        answer = "申し訳ありません、関連FAQが見つかりませんでした。"
+    else:
+        with st.spinner("回答生成中…"):
+            answer = generate_response_with_history(
+                last_q,
+                st.session_state.chat_log,
+                ref_q,
+                ref_a
+            )
+    # 回答を更新
+    st.session_state.chat_log[-1] = (last_q, answer)
+    append_to_csv(last_q, answer)
+    append_to_gsheet(last_q, answer)
+    st.experimental_rerun()
 
-# チャット履歴表示
-if st.session_state.chat_log:
-    st.subheader(" チャット履歴")
-    logs = st.session_state.chat_log if log_order == "新しい順" else list(reversed(st.session_state.chat_log))
-    for q, a in logs:
-        st.markdown(
-            f'<div class="chat-text"><b>🧑‍💻 質問:</b> {q}<br><b>🤖 回答:</b> {a}</div><hr>',
-            unsafe_allow_html=True
-        )
+# チャット履歴の最大件数制御
+if len(st.session_state.chat_log) > max_log:
+    st.session_state.chat_log = st.session_state.chat_log[-max_log:]
+
+# チャット履歴表示（再掲）
+for q, a in st.session_state.chat_log:
+    st.chat_message("user").write(q)
+    if a:
+        st.chat_message("assistant").write(a)
+
