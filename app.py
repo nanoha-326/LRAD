@@ -431,65 +431,19 @@ def generate_response_with_history(user_q, chat_log, ref_q, ref_a):
 if "chat_log" not in st.session_state:
     st.session_state.chat_log = []
 
-# セッション初期化
-if "user_input" not in st.session_state:
-    st.session_state["user_input"] = ""
+# チャット履歴表示
+for message in st.session_state.chat_log:
+    st.chat_message("user").write(message)
 
-# 入力フォームCSSとHTML
-st.markdown("""
-<style>
-.custom-textarea {
-    width: 100%;
-    height: 100px;
-    padding: 12px 16px;
-    border: none;
-    border-radius: 12px;
-    background-color: #f2f2f2;
-    font-size: 14px;
-    color: #333;
-    resize: none;
-    font-family: 'Segoe UI', sans-serif;
-    box-sizing: border-box;
-}
+# ChatGPT風の入力フォーム（1行＋シンプル）
+user_q = st.chat_input("質問をどうぞ...")
 
-.custom-textarea::placeholder {
-    color: #aaa;
-}
-
-.custom-submit {
-    background-color: #10a37f;
-    color: white;
-    border: none;
-    padding: 8px 20px;
-    border-radius: 10px;
-    font-size: 14px;
-    cursor: pointer;
-    float: right;
-    margin-top: 8px;
-}
-
-.custom-submit:hover {
-    background-color: #0e8b6b;
-}
-</style>
-
-<form action="" method="post">
-    <textarea name="user_input" placeholder="メッセージを入力..." class="custom-textarea"></textarea>
-    <br>
-    <input type="submit" value="送信" class="custom-submit"/>
-</form>
-""", unsafe_allow_html=True)
+# 入力があればログに追加（ここに処理を追加して応答などもOK）
+if user_q:
+    st.session_state.chat_log.append(user_q)
+    st.chat_message("user").write(user_q)
 
 
-# ChatGPT風入力フォーム表示
-with st.form(key="chat_form", clear_on_submit=True):
-    st.markdown('<div class="chatgpt-box">', unsafe_allow_html=True)
-
-    user_q = st.text_area("", placeholder="質問をどうぞ...", height=100, key="user_input")
-
-    send = st.form_submit_button("送信")
-
-    st.markdown('</div>', unsafe_allow_html=True)
 
 
 
