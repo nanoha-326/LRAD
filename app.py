@@ -10,7 +10,6 @@ from google.oauth2.service_account import Credentials
 from datetime import datetime
 import time
 
-# ページ設定
 st.set_page_config(page_title="LRADチャット", layout="centered")
 
 CORRECT_PASSWORD = "mypassword"
@@ -22,7 +21,6 @@ if "show_welcome" not in st.session_state:
 if "welcome_message" not in st.session_state:
     st.session_state["welcome_message"] = ""
 
-# ウェルカムメッセージ候補（日本語＋英語混合）
 WELCOME_MESSAGES = [
     "ようこそ、LRADチャットボットへ。",
     "いらっしゃいませ。ご質問をどうぞ。",
@@ -31,12 +29,8 @@ WELCOME_MESSAGES = [
     "Welcome to the LRAD Chat Assistant.",
     "Let’s solve it together.",
     "Your questions, our answers.",
-    "Powered by LRAD. Driven by Innovation.",
-    "解決への最短ルート、それがLRAD。",
-    "Let innovation answer.",
 ]
 
-# ログイン処理
 def password_check():
     if not st.session_state["authenticated"]:
         with st.form("login_form"):
@@ -53,12 +47,12 @@ def password_check():
                     st.error("パスワードが間違っています")
         st.stop()
 
-# ログインチェック
 password_check()
 
-# ようこそ演出（ログイン後1度だけ）
+placeholder = st.empty()
+
 if st.session_state["show_welcome"]:
-    st.markdown(
+    placeholder.markdown(
         f"""
         <style>
         .fade-in-text {{
@@ -76,13 +70,25 @@ if st.session_state["show_welcome"]:
         """,
         unsafe_allow_html=True
     )
-    time.sleep(2.5)
-    st.session_state["show_welcome"] = False
-    st.experimental_rerun()
+    # 自動的に次の画面に進むために
+    # session_stateのフラグをFalseにして再実行
+    # ここではStreamlitの再描画間隔を利用して遷移
+    import threading
 
-# ✅ ここからチャット画面
-st.title("💬 LRADサポートチャット")
-st.write("ご質問をどうぞ")
+    def clear_welcome():
+        time.sleep(2.5)
+        st.session_state["show_welcome"] = False
+        st.experimental_rerun()
+
+    # スレッドで遅延実行（再実行）
+    threading.Thread(target=clear_welcome).start()
+
+else:
+    placeholder.empty()
+    # ここからアプリ本体
+    st.title("💬 LRADサポートチャット")
+    st.write("ご質問をどうぞ")
+
 
 # OpenAIキー
 try:
