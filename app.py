@@ -20,6 +20,18 @@ if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
 if "show_welcome" not in st.session_state:
     st.session_state["show_welcome"] = False
+if "welcome_message" not in st.session_state:
+    st.session_state["welcome_message"] = ""
+
+# ようこそメッセージの候補リスト
+WELCOME_MESSAGES = [
+    "ようこそ！LRADチャットボットへ。",
+    "いらっしゃいませ。LRADチャットボットをご利用ください。",
+    "LRADチャットボットへようこそ！",
+    "ご質問お待ちしております！LRADチャットボットです。",
+    "Welcome to the LRAD Chat Assistant!",
+    "Let’s solve your questions together with LRAD!",
+]
 
 # 認証チェック処理
 def password_check():
@@ -32,10 +44,13 @@ def password_check():
                 if password == CORRECT_PASSWORD:
                     st.session_state["authenticated"] = True
                     st.session_state["show_welcome"] = True
+                    # ログイン成功時にランダムにメッセージをセット
+                    st.session_state["welcome_message"] = random.choice(WELCOME_MESSAGES)
                     st.experimental_rerun()
                 else:
                     st.error("パスワードが間違っています")
-        st.stop()  # ❗ ここでログイン失敗・未ログイン時は強制停止
+        st.stop()  # ❗ ログイン失敗・未ログイン時は停止
+    
 
 # ログインチェック
 password_check()
@@ -43,20 +58,20 @@ password_check()
 # 「ようこそ」演出が必要なとき
 if st.session_state["show_welcome"]:
     st.markdown(
-        """
+        f"""
         <style>
-        .fade-in-text {
+        .fade-in-text {{
             font-size: 48px;
             text-align: center;
             margin-top: 30vh;
             animation: fadein 2s;
-        }
-        @keyframes fadein {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
+        }}
+        @keyframes fadein {{
+            from {{ opacity: 0; }}
+            to {{ opacity: 1; }}
+        }}
         </style>
-        <div class="fade-in-text">ようこそ！LRADチャットボットへ。</div>
+        <div class="fade-in-text">{st.session_state["welcome_message"]}</div>
         """,
         unsafe_allow_html=True
     )
