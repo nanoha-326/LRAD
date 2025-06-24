@@ -44,7 +44,7 @@ WELCOME_MESSAGES = [
 def password_check():
     if not st.session_state["authenticated"]:
         with st.form("login_form"):
-            st.title("🔒 ログイン")
+            st.title("ログイン")
             password = st.text_input("パスワードを入力", type="password")
             submitted = st.form_submit_button("ログイン")
             if submitted:
@@ -264,7 +264,6 @@ selected_font = font_size_map[font_size]
 selected_img = img_width_map[font_size]
 
 max_log = st.sidebar.slider("チャット履歴の保存件数", min_value=10, max_value=200, value=100, step=10)
-log_order = st.sidebar.radio("チャット履歴の表示順", ["新しい順", "古い順"])
 
 if st.sidebar.button("FAQ埋め込みキャッシュ再計算"):
     recalc_faq_embeddings()
@@ -390,10 +389,7 @@ if "chat_log" not in st.session_state:
     st.session_state.chat_log = []
 
 # 履歴があるなら順序によって並べ替え表示
-if log_order == "新しい順":
-    logs_to_show = reversed(st.session_state.chat_log)
-else:
-    logs_to_show = st.session_state.chat_log
+logs_to_show = st.session_state.chat_log
 
 for q, a in logs_to_show:
     st.chat_message("user").write(q)
