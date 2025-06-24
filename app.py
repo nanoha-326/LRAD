@@ -12,6 +12,15 @@ import time
 
 st.set_page_config(page_title="LRADチャット", layout="centered")
 
+def symbol_rate(text):
+    if not text:
+        return 0
+    total_len = len(text)
+    # 記号を判定：英数字・ひらがな・カタカナ・漢字以外を記号とみなす例
+    symbols = re.findall(r"[^\wぁ-んァ-ン一-龥]", text)
+    return len(symbols) / total_len
+
+
 # パスワード設定
 CORRECT_PASSWORD = "mypassword"
 
