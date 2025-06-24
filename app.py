@@ -340,7 +340,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# 淡い見出し
+# よくある質問見出し
 st.markdown("<div class='faq-heading'>💡 よくある質問</div>", unsafe_allow_html=True)
 
 # よくある質問表示関数
@@ -426,33 +426,37 @@ def generate_response_with_history(user_q, chat_log, ref_q, ref_a):
     except Exception as e:
         st.warning(f"AI回答生成に失敗しました: {e}")
         return "申し訳ありません、AIによる回答生成に失敗しました。"
+        
 # セッションステート初期化
 if "chat_log" not in st.session_state:
     st.session_state.chat_log = []
 
-# 入力フォームのCSS
+# セッション初期化
+if "user_input" not in st.session_state:
+    st.session_state["user_input"] = ""
+
+# 入力フォームCSSとHTML
 st.markdown("""
 <style>
-/* ChatGPT風 入力フォーム：枠を完全に消す */
-.chatgpt-box textarea {
-    all: unset;  /* ← すべてのブラウザ既定スタイルを初期化 */
+.custom-textarea {
     width: 100%;
     height: 100px;
     padding: 12px 16px;
-    font-size: 14px;
+    border: none;
     border-radius: 12px;
-    background-color: white;
+    background-color: #f2f2f2;
+    font-size: 14px;
     color: #333;
+    resize: none;
     font-family: 'Segoe UI', sans-serif;
-    resize: vertical;
     box-sizing: border-box;
 }
 
-.chatgpt-box textarea::placeholder {
-    color: white;
+.custom-textarea::placeholder {
+    color: #aaa;
 }
 
-.chatgpt-box button {
+.custom-submit {
     background-color: #10a37f;
     color: white;
     border: none;
@@ -464,10 +468,16 @@ st.markdown("""
     margin-top: 8px;
 }
 
-.chatgpt-box button:hover {
+.custom-submit:hover {
     background-color: #0e8b6b;
 }
 </style>
+
+<form action="" method="post">
+    <textarea name="user_input" placeholder="メッセージを入力..." class="custom-textarea"></textarea>
+    <br>
+    <input type="submit" value="送信" class="custom-submit"/>
+</form>
 """, unsafe_allow_html=True)
 
 
