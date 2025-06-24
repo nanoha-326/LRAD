@@ -36,7 +36,7 @@ WELCOME_MESSAGES = [
 ]
 
 def password_check():
-    if not st.session_state["authenticated"]:
+if not st.session_state["authenticated"]:
         with st.form("login_form"):
             st.title("ログイン")
             password = st.text_input("パスワードを入力", type="password")
@@ -144,6 +144,7 @@ if page == "チャット":
     run_chat_page()
 elif page == "Insights":
     run_insights_page()
+###############################################################################
 
 # OpenAIキー取得（エラー表示強化）
 try:
