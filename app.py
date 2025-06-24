@@ -331,7 +331,7 @@ st.markdown(
     }
     .faq-heading {
         font-size: 14px;
-        color: #f9f9f9;
+        color: #444;
         font-weight: 600;
         margin: 8px 0;
     }
