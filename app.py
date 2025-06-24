@@ -156,16 +156,34 @@ def get_base64_image(path):
 
 image_base64 = get_base64_image("LRADimg.png")
 
+# 変更後（スマホ対応レスポンシブ付き）
 st.markdown(
     f"""
+    <style>
+    .chat-header h1 {{
+        font-size: 40px !important;
+    }}
+    .chat-header img {{
+        width: 80px !important;
+        margin-right: 10px;
+    }}
+    @media screen and (max-width: 600px) {{
+        .chat-header h1 {{
+            font-size: 24px !important;
+        }}
+        .chat-header img {{
+            width: 48px !important;
+        }}
+    }}
+    </style>
     <div style="display:flex; align-items:center;" class="chat-header">
-        <img src="data:image/png;base64,{image_base64}"
-             width="80px" style="margin-right:10px;">
-        <h1 style="margin:0; font-size:40px; font-weight:bold;">LRADサポートチャット</h1>
+        <img src="data:image/png;base64,{image_base64}" alt="LRADロゴ">
+        <h1 style="margin:0; font-weight:bold;">LRADサポートチャット</h1>
     </div>
     """,
     unsafe_allow_html=True
 )
+
 
 st.caption("※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。")
 
