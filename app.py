@@ -100,7 +100,6 @@ if st.session_state["show_welcome"]:
         st.session_state["show_welcome"] = False
         st.experimental_rerun()
 
-if st.session_state["authenticated"] and not st.session_state["show_welcome"]:
 
 # OpenAIキー
 try:
