@@ -4,3 +4,4 @@ openai
 scikit-learn
 gspread
 matplotlib
+seaborn
