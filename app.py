@@ -12,27 +12,16 @@ import time
 
 st.set_page_config(page_title="LRADチャット", layout="centered")
 
+# パスワード設定
 CORRECT_PASSWORD = "mypassword"
 
+# セッション状態の初期化
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
+if "show_welcome" not in st.session_state:
+    st.session_state["show_welcome"] = False
 
-if "welcome_start_time" not in st.session_state:
-    st.session_state["welcome_start_time"] = None
-
-WELCOME_MESSAGES = [
-    "ようこそ、LRADチャットボットへ。",
-    "いらっしゃいませ。ご質問をどうぞ。",
-    "あなたの疑問にお応えします。",
-    "さあ、はじめましょう。LRADがサポートします。",
-    "Welcome to the LRAD Chat Assistant.",
-    "Let’s solve it together.",
-    "Your questions, our answers.",
-    "Powered by LRAD. Driven by Innovation.",
-    "解決への最短ルート、それがLRAD。",
-    "Let innovation answer.",
-]
-
+# 認証チェック処理
 def password_check():
     if not st.session_state["authenticated"]:
         with st.form("login_form"):
@@ -42,49 +31,46 @@ def password_check():
             if submitted:
                 if password == CORRECT_PASSWORD:
                     st.session_state["authenticated"] = True
-                    st.session_state["welcome_start_time"] = time.time()
-                    st.session_state["welcome_message"] = random.choice(WELCOME_MESSAGES)
+                    st.session_state["show_welcome"] = True
                     st.experimental_rerun()
                 else:
                     st.error("パスワードが間違っています")
-        st.stop()
+        st.stop()  # ❗ ここでログイン失敗・未ログイン時は強制停止
 
+# ログインチェック
 password_check()
 
-# ログイン済み以降の処理
-if st.session_state["welcome_start_time"]:
-    elapsed = time.time() - st.session_state["welcome_start_time"]
-else:
-    elapsed = None
-
-if elapsed is not None and elapsed < 2.5:
-    # 2.5秒未満ならようこそ画面
+# 「ようこそ」演出が必要なとき
+if st.session_state["show_welcome"]:
     st.markdown(
-        f"""
+        """
         <style>
-        .fade-in-text {{
-            font-size: 42px;
+        .fade-in-text {
+            font-size: 48px;
             text-align: center;
             margin-top: 30vh;
             animation: fadein 2s;
-        }}
-        @keyframes fadein {{
-            from {{ opacity: 0; }}
-            to {{ opacity: 1; }}
-        }}
+        }
+        @keyframes fadein {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
         </style>
-        <div class="fade-in-text">{st.session_state['welcome_message']}</div>
+        <div class="fade-in-text">ようこそ！LRADチャットボットへ。</div>
         """,
         unsafe_allow_html=True
     )
-    # ここで再読み込みを促すためにStreamlitの小技
+    time.sleep(2.5)
+    st.session_state["show_welcome"] = False
     st.experimental_rerun()
-else:
-    # 2.5秒以上経過したらwelcome_start_timeをリセットしてチャット画面表示
-    st.session_state["welcome_start_time"] = None
-    st.title("💬 LRADサポートチャット")
-    st.write("ご質問をどうぞ。")
-    # ここにチャットUIを置く
+
+# ✅ ここから先は認証済みのときだけ実行される
+
+# チャットボット画面
+st.title("💬 LRADサポートチャット")
+st.write("ご質問をどうぞ")
+# ここにチャットUIやFAQなどの機能を追加
+
 
 
 # OpenAIキー
