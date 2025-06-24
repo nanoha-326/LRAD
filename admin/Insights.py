@@ -11,8 +11,8 @@ from google.oauth2.service_account import Credentials
 from openai import OpenAI
 from sklearn.cluster import KMeans
 
-
-CORRECT_PASSWORD = "123"
+def show_insights():
+    st.title("📊 LRADサポートチャット インサイトダッシュボード")
 
 if "is_admin" not in st.session_state:
     st.session_state["is_admin"] = False
