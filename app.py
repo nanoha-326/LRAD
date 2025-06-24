@@ -309,37 +309,78 @@ st.caption("※このチャットボットはFAQとAIをもとに応答します
 faq_df = load_faq_all()
 common_faq_df = load_faq_common()
 
-# よくある質問表示（上に薄い見出し）
+# チャットボット風FAQスタイルのCSS
 st.markdown(
     """
-    <h3 style='color: rgba(0, 0, 0, 0.3); font-weight: 600;'>💡 よくある質問（ランダム表示）</h3>
+    <style>
+    .chat-container {
+        background-color: #f5f5f5;
+        padding: 16px;
+        border-radius: 12px;
+        margin: 10px 0 30px 0;
+    }
+    .chat-bubble-question {
+        background-color: #e0f7fa;
+        color: #004d40;
+        padding: 12px 16px;
+        border-radius: 20px;
+        max-width: 80%;
+        margin-bottom: 8px;
+        font-weight: 600;
+    }
+    .chat-bubble-answer {
+        background-color: #eeeeee;
+        color: #333333;
+        padding: 12px 16px;
+        border-radius: 20px;
+        max-width: 80%;
+        margin-bottom: 8px;
+        margin-left: auto;
+    }
+    .chat-label {
+        font-size: 14px;
+        color: #888888;
+        margin: 4px 0;
+    }
+    .faq-heading {
+        font-size: 20px;
+        color: rgba(0, 0, 0, 0.3);
+        font-weight: 600;
+        margin-bottom: 10px;
+    }
+    </style>
     """,
     unsafe_allow_html=True
 )
 
-# よくある質問をランダムに表示
+# FAQ見出し（うっすら）
+st.markdown("<div class='faq-heading'>💡 よくある質問（ランダム表示）</div>", unsafe_allow_html=True)
+
+# よくある質問の表示関数
 def display_random_common_faqs(common_faq_df, n=1):
     if len(common_faq_df) == 0:
         st.info("よくある質問がありません。")
         return
     sampled = common_faq_df.sample(min(n, len(common_faq_df)))
-    for i, row in enumerate(sampled.itertuples(), 1):
+    for row in sampled.itertuples():
         question = getattr(row, "質問", "（質問が不明です）")
         answer = getattr(row, "回答", "（回答が不明です）")
         st.markdown(
             f"""
-            <div class="chat-text">
-                <b>Q. {question}</b><br>
-                A. {answer}
+            <div class="chat-container">
+                <div class="chat-label">Q.</div>
+                <div class="chat-bubble-question">{question}</div>
+                <div class="chat-label">A.</div>
+                <div class="chat-bubble-answer">{answer}</div>
             </div>
-            <hr>
             """,
             unsafe_allow_html=True
         )
 
-# 表示関数の実行
+# FAQの表示
 display_random_common_faqs(common_faq_df, n=1)
 st.divider()
+
 
 
 # 類似質問検索
