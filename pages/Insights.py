@@ -17,7 +17,6 @@ CORRECT_PASSWORD = "123"
 if "is_admin" not in st.session_state:
     st.session_state["is_admin"] = False
 
-# パスワード入力フォーム（認証されていなければ表示）
 if not st.session_state["is_admin"]:
     with st.form("admin_login_form"):
         st.title("🔐 管理者専用 Insights ダッシュボード")
@@ -27,7 +26,7 @@ if not st.session_state["is_admin"]:
         if submitted:
             if password == CORRECT_PASSWORD:
                 st.session_state["is_admin"] = True
-                st.success("ログイン成功。データを読み込み中...")
+                st.success("ログイン成功")
                 st.experimental_rerun()
             else:
                 st.error("パスワードが間違っています。")
