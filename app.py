@@ -320,6 +320,7 @@ def display_random_common_faqs(common_faq_df, n=1):
         answer = getattr(row, "回答", "（回答が不明です）")
         st.markdown(
             f'<div class="chat-text"><b>Q. {question}</b><br>A. {answer}</div><hr>',
+               <h3 style='color: rgba(0, 0, 0, 0.3); font-weight: 600;'>💡 よくある質問（ランダム表示）</h3>
             unsafe_allow_html=True
         )
 
