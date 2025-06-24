@@ -104,7 +104,29 @@ if st.session_state["authenticated"] and not st.session_state["show_welcome"]:
     st.title("💬 LRADサポートチャット")
     st.write("ご質問をどうぞ")
 
+# ヘッダー画像
+def get_base64_image(path):
+    try:
+        with open(path, "rb") as img_file:
+            return base64.b64encode(img_file.read()).decode()
+    except Exception as e:
+        st.warning(f"画像の読み込みに失敗しました: {e}")
+        return ""
 
+image_base64 = get_base64_image("LRADimg.png")
+
+st.markdown(
+    f"""
+    <div style="display:flex; align-items:center;" class="chat-header">
+        <img src="data:image/png;base64,{image_base64}"
+             width="{selected_img}px" style="margin-right:10px;">
+        <h1 style="margin:0; font-size:40px; font-weight:bold;">LRADサポートチャット</h1>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+st.caption("※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。")
 
 # OpenAIキー
 try:
@@ -286,36 +308,12 @@ if st.sidebar.button("FAQキャッシュクリア"):
 
 inject_custom_css(selected_font)
 
-# ヘッダー画像
-def get_base64_image(path):
-    try:
-        with open(path, "rb") as img_file:
-            return base64.b64encode(img_file.read()).decode()
-    except Exception as e:
-        st.warning(f"画像の読み込みに失敗しました: {e}")
-        return ""
-
-image_base64 = get_base64_image("LRADimg.png")
-
-st.markdown(
-    f"""
-    <div style="display:flex; align-items:center;" class="chat-header">
-        <img src="data:image/png;base64,{image_base64}"
-             width="{selected_img}px" style="margin-right:10px;">
-        <h1 style="margin:0; font-size:40px; font-weight:bold;">LRADサポートチャット</h1>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-st.caption("※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。")
-
 # FAQ・共通FAQ読み込み
 faq_df = load_faq_all()
 common_faq_df = load_faq_common()
 
 # よくある質問表示
-def display_random_common_faqs(common_faq_df, n=3):
+def display_random_common_faqs(common_faq_df, n=1):
     if len(common_faq_df) == 0:
         st.info("よくある質問がありません。")
         return
