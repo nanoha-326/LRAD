@@ -9,6 +9,9 @@ import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime
 
+# ページ設定
+st.set_page_config(page_title="LRADサポートチャット", layout="centered")
+
 # セキュリティ上は secrets.toml や環境変数で管理が推奨
 CORRECT_PASSWORD = "mypassword"  # ← ここを変更してください
 
@@ -34,10 +37,6 @@ password_check()
 # ここから下はログイン後のアプリ内容
 st.title("チャットボットアプリ")
 st.write("ようこそ！これはパスワードで保護されたアプリです。")
-
-
-# ページ設定
-st.set_page_config(page_title="LRADサポートチャット", layout="centered")
 
 # OpenAIキー
 try:
