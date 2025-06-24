@@ -8,40 +8,68 @@ import os, random, re, unicodedata, json, base64
 import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime
+import time
 
 # ページ設定
-st.set_page_config(page_title="LRADサポートチャット", layout="centered")
+st.set_page_config(page_title="LRADチャット", layout="centered")
 
-# セキュアに管理したい場合は secrets.toml などへ
+# パスワード
 CORRECT_PASSWORD = "mypassword"
 
-def password_check():
-    if "authenticated" not in st.session_state:
-        st.session_state["authenticated"] = False
+# セッション状態の初期化
+if "authenticated" not in st.session_state:
+    st.session_state["authenticated"] = False
+if "show_welcome" not in st.session_state:
+    st.session_state["show_welcome"] = False
 
+# パスワード認証関数
+def password_check():
     if not st.session_state["authenticated"]:
         with st.form("login_form"):
-            st.write("🔒 パスワードを入力してください")
-            password = st.text_input("パスワード", type="password")
+            st.title("🔒 ログイン")
+            password = st.text_input("パスワードを入力", type="password")
             submitted = st.form_submit_button("ログイン")
-
             if submitted:
                 if password == CORRECT_PASSWORD:
                     st.session_state["authenticated"] = True
-                    st.experimental_rerun()  # ← 🔁 ここでアプリを再起動させる（重要）
+                    st.session_state["show_welcome"] = True
+                    st.experimental_rerun()
                 else:
                     st.error("パスワードが間違っています")
                     st.stop()
-
-    if not st.session_state["authenticated"]:
-        st.stop()
+    elif st.session_state["show_welcome"]:
+        # CSSでフェード演出
+        st.markdown(
+            """
+            <style>
+            .fade-in-text {
+                font-size: 48px;
+                text-align: center;
+                margin-top: 30vh;
+                animation: fadein 2s;
+            }
+            @keyframes fadein {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            </style>
+            <div class="fade-in-text">ようこそ！LRADチャットボットへ。</div>
+            """,
+            unsafe_allow_html=True
+        )
+        # 少し待ってからチャット画面に遷移
+        time.sleep(2.5)
+        st.session_state["show_welcome"] = False
+        st.experimental_rerun()
 
 # ログインチェック
 password_check()
 
-# ここから下はログイン後のアプリ内容
-st.title("チャットボットアプリ")
-st.write("ようこそ！これはパスワードで保護されたアプリです。")
+# チャット画面（ここからが本体）
+st.title("💬 LRADサポートチャット")
+st.write("ご質問をどうぞ。")
+# ここにチャットボットUIやFAQ機能を追加
+
 
 # OpenAIキー
 try:
