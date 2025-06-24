@@ -448,8 +448,10 @@ if user_q:
 
 
 # チャット送信処理
-if send and user_q:
-    if not is_valid_input(user_q):
+if user_q:
+    # 入力があった場合の処理
+    st.chat_message("user").write(user_q)
+    # 以下に回答処理なども書ける
         st.warning("入力が不正です。3〜300文字、記号率30%未満にしてください。")
     else:
         ref_q, ref_a = find_top_similar(user_q, faq_df)
