@@ -119,32 +119,6 @@ if st.session_state["show_welcome"]:
         st.session_state["show_welcome"] = False
         st.experimental_rerun()
 
-# --- ページ選択（タブ切替）部分 --- #
-if st.session_state["is_admin"]:
-    pages = ["チャット", "Insights"]
-else:
-    pages = ["チャット"]
-
-page = st.sidebar.selectbox("ページ選択", pages)
-
-# --- ページ振り分け処理 --- #
-def run_chat_page():
-    st.title("LRADサポートチャット")
-    st.caption("※このチャットボットはFAQとAIをもとに応答します。")
-    st.write("（ここにチャット処理を実装）")
-
-def run_insights_page():
-    if not st.session_state.get("is_admin", False):
-        st.error("このページへのアクセス権がありません。")
-        st.stop()
-    st.title("📊 LRADサポートチャット インサイト分析")
-    st.write("（ここにInsightsページのコードを実装）")
-
-if page == "チャット":
-    run_chat_page()
-elif page == "Insights":
-    run_insights_page()
-###############################################################################
 
 # OpenAIキー取得（エラー表示強化）
 try:
