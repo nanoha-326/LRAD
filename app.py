@@ -21,6 +21,18 @@ if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
 if "show_welcome" not in st.session_state:
     st.session_state["show_welcome"] = False
+if "welcome_message" not in st.session_state:
+    st.session_state["welcome_message"] = ""
+
+# ウェルカムメッセージ候補（日本語＋英語混合）
+WELCOME_MESSAGES = [
+    "ようこそ、LRADチャットボットへ。",
+    "あなたの疑問にお応えしますご質問をどうぞ。",
+    "さあ、はじめましょう。",
+    "Welcome to the LRAD Chat Assistant.",
+    "Let’s solve it together.",
+    "Your questions, our answers.",
+]
 
 # 認証チェック処理
 def password_check():
@@ -33,6 +45,7 @@ def password_check():
                 if password == CORRECT_PASSWORD:
                     st.session_state["authenticated"] = True
                     st.session_state["show_welcome"] = True
+                    st.session_state["welcome_message"] = random.choice(WELCOME_MESSAGES)
                     st.experimental_rerun()
                 else:
                     st.error("パスワードが間違っています")
@@ -41,37 +54,31 @@ def password_check():
 # ログインチェック
 password_check()
 
-# 「ようこそ」演出が必要なとき
+# ようこそ演出（ログイン後1度だけ）
 if st.session_state["show_welcome"]:
     st.markdown(
-        """
+        f"""
         <style>
-        .fade-in-text {
-            font-size: 48px;
+        .fade-in-text {{
+            font-size: 42px;
             text-align: center;
             margin-top: 30vh;
             animation: fadein 2s;
-        }
-        @keyframes fadein {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
+        }}
+        @keyframes fadein {{
+            from {{ opacity: 0; }}
+            to {{ opacity: 1; }}
+        }}
         </style>
-        <div class="fade-in-text">ようこそ！LRADチャットボットへ。</div>
+        <div class="fade-in-text">{st.session_state["welcome_message"]}</div>
         """,
         unsafe_allow_html=True
     )
     time.sleep(2.5)
     st.session_state["show_welcome"] = False
     st.experimental_rerun()
-
+    
 # ✅ ここから先は認証済みのときだけ実行される
-
-# チャットボット画面
-st.title("💬 LRADサポートチャット")
-st.write("ご質問をどうぞ")
-# ここにチャットUIやFAQなどの機能を追加
-
 
 # OpenAIキー
 try:
