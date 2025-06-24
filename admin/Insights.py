@@ -32,9 +32,6 @@ if not st.session_state["is_admin"]:
                 st.error("パスワードが間違っています。")
     st.stop()
     
-# ページ設定（早めに）
-st.set_page_config(page_title="LRADチャット インサイト分析", layout="wide")
-st.title("📊 LRADサポートチャット インサイトダッシュボード")
 
 # OpenAIクライアント初期化
 client = OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
