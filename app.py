@@ -341,7 +341,7 @@ st.markdown(
 )
 
 # 淡い見出し
-st.markdown("<div class='faq-heading'>💡 よくある質問（ランダム表示）</div>", unsafe_allow_html=True)
+st.markdown("<div class='faq-heading'>💡 よくある質問</div>", unsafe_allow_html=True)
 
 # よくある質問表示関数
 def display_random_common_faqs(common_faq_df, n=1):
