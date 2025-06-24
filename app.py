@@ -111,9 +111,15 @@ def recalc_faq_embeddings(path="faq_all.csv", cached="faq_all_with_embed.csv"):
     except Exception as e:
         st.error(f"FAQ埋め込み再計算に失敗しました: {e}")
 
+def get_modified_time(path):
+    try:
+        return os.path.getmtime(path)
+    except:
+        return 0
+        
 # CSV読み込み
 @st.cache_data(show_spinner=False)
-def load_faq_all(path="faq_all.csv", cached="faq_all_with_embed.csv"):
+def load_faq_all(path="faq_all.csv", cached="faq_all_with_embed.csv", mtime=None):
     def parse_embedding(val):
         if isinstance(val, str):
             try:
@@ -144,6 +150,9 @@ def load_faq_all(path="faq_all.csv", cached="faq_all_with_embed.csv"):
         df.to_csv(cached, index=False)
         df["embedding"] = df["embedding"].apply(parse_embedding)
     return df
+
+mtime = get_modified_time("faq_all.csv") + get_modified_time("faq_all_with_embed.csv")
+df = load_faq_all(path="faq_all.csv", cached="faq_all_with_embed.csv", mtime=mtime)
 
 @st.cache_data(show_spinner=False)
 def load_faq_common(path="faq_common.csv"):
