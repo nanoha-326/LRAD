@@ -21,8 +21,8 @@ if "show_welcome" not in st.session_state:
     st.session_state["show_welcome"] = False
 if "welcome_message" not in st.session_state:
     st.session_state["welcome_message"] = ""
-if "welcome_start_time" not in st.session_state:
-    st.session_state["welcome_start_time"] = None
+if "fade_out" not in st.session_state:
+    st.session_state["fade_out"] = False
 
 WELCOME_MESSAGES = [
     "ようこそ！LRADチャットボットへ。",
@@ -43,36 +43,63 @@ def password_check():
                 if password == CORRECT_PASSWORD:
                     st.session_state["authenticated"] = True
                     st.session_state["show_welcome"] = True
-                    st.session_state["welcome_start_time"] = time.time()
                     st.session_state["welcome_message"] = random.choice(WELCOME_MESSAGES)
+                    st.session_state["fade_out"] = False
+                    st.experimental_rerun()
                 else:
                     st.error("パスワードが間違っています")
         st.stop()
 
 password_check()
 
-if st.session_state["show_welcome"]:
-    elapsed = time.time() - st.session_state["welcome_start_time"]
+def show_welcome_screen():
     st.markdown(
         f"""
         <style>
-        .fade-in-text {{
+        .fullscreen {{
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             font-size: 48px;
-            text-align: center;
-            margin-top: 30vh;
-            animation: fadein 2s;
+            font-weight: bold;
+            animation: fadein 1.5s forwards;
+            z-index: 9999;
+        }}
+        .fadeout {{
+            animation: fadeout 1.5s forwards;
         }}
         @keyframes fadein {{
             from {{ opacity: 0; }}
             to {{ opacity: 1; }}
         }}
+        @keyframes fadeout {{
+            from {{ opacity: 1; }}
+            to {{ opacity: 0; }}
+        }}
         </style>
-        <div class="fade-in-text">{st.session_state["welcome_message"]}</div>
+        <div class="fullscreen {'fadeout' if st.session_state['fade_out'] else ''}">
+            {st.session_state['welcome_message']}
+        </div>
         """,
         unsafe_allow_html=True,
     )
-    if elapsed >= 2.5:
+
+# 演出制御
+if st.session_state["show_welcome"]:
+    show_welcome_screen()
+    if not st.session_state["fade_out"]:
+        # 最初のフェードイン終わった後に数秒待つ
+        time.sleep(2.0)
+        st.session_state["fade_out"] = True
+        st.experimental_rerun()
+    else:
+        # フェードアウトアニメーションの時間待つ
+        time.sleep(1.5)
         st.session_state["show_welcome"] = False
+        st.experimental_rerun()
 
 if st.session_state["authenticated"] and not st.session_state["show_welcome"]:
     st.title("💬 LRADサポートチャット")
