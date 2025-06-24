@@ -55,7 +55,7 @@ def password_check():
 
 password_check()
 
-    if not st.session_state["authenticated"]:
+if not st.session_state["authenticated"]:
         with st.form("login_form"):
             st.title("ログイン")
             password = st.text_input("パスワードを入力", type="password")
