@@ -16,10 +16,9 @@ CORRECT_PASSWORD = "mypassword"
 
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
-if "show_welcome" not in st.session_state:
-    st.session_state["show_welcome"] = False
-if "welcome_message" not in st.session_state:
-    st.session_state["welcome_message"] = ""
+
+if "welcome_start_time" not in st.session_state:
+    st.session_state["welcome_start_time"] = None
 
 WELCOME_MESSAGES = [
     "ようこそ、LRADチャットボットへ。",
@@ -29,6 +28,9 @@ WELCOME_MESSAGES = [
     "Welcome to the LRAD Chat Assistant.",
     "Let’s solve it together.",
     "Your questions, our answers.",
+    "Powered by LRAD. Driven by Innovation.",
+    "解決への最短ルート、それがLRAD。",
+    "Let innovation answer.",
 ]
 
 def password_check():
@@ -40,7 +42,7 @@ def password_check():
             if submitted:
                 if password == CORRECT_PASSWORD:
                     st.session_state["authenticated"] = True
-                    st.session_state["show_welcome"] = True
+                    st.session_state["welcome_start_time"] = time.time()
                     st.session_state["welcome_message"] = random.choice(WELCOME_MESSAGES)
                     st.experimental_rerun()
                 else:
@@ -49,10 +51,15 @@ def password_check():
 
 password_check()
 
-placeholder = st.empty()
+# ログイン済み以降の処理
+if st.session_state["welcome_start_time"]:
+    elapsed = time.time() - st.session_state["welcome_start_time"]
+else:
+    elapsed = None
 
-if st.session_state["show_welcome"]:
-    placeholder.markdown(
+if elapsed is not None and elapsed < 2.5:
+    # 2.5秒未満ならようこそ画面
+    st.markdown(
         f"""
         <style>
         .fade-in-text {{
@@ -66,28 +73,18 @@ if st.session_state["show_welcome"]:
             to {{ opacity: 1; }}
         }}
         </style>
-        <div class="fade-in-text">{st.session_state["welcome_message"]}</div>
+        <div class="fade-in-text">{st.session_state['welcome_message']}</div>
         """,
         unsafe_allow_html=True
     )
-    # 自動的に次の画面に進むために
-    # session_stateのフラグをFalseにして再実行
-    # ここではStreamlitの再描画間隔を利用して遷移
-    import threading
-
-    def clear_welcome():
-        time.sleep(2.5)
-        st.session_state["show_welcome"] = False
-        st.experimental_rerun()
-
-    # スレッドで遅延実行（再実行）
-    threading.Thread(target=clear_welcome).start()
-
+    # ここで再読み込みを促すためにStreamlitの小技
+    st.experimental_rerun()
 else:
-    placeholder.empty()
-    # ここからアプリ本体
+    # 2.5秒以上経過したらwelcome_start_timeをリセットしてチャット画面表示
+    st.session_state["welcome_start_time"] = None
     st.title("💬 LRADサポートチャット")
-    st.write("ご質問をどうぞ")
+    st.write("ご質問をどうぞ。")
+    # ここにチャットUIを置く
 
 
 # OpenAIキー
