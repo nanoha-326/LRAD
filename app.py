@@ -433,43 +433,47 @@ if "chat_log" not in st.session_state:
 # 入力フォームのCSS
 st.markdown("""
 <style>
-.custom-form input[type="text"] {
-    padding: 10px 14px;
-    border: 1px solid #ddd;
-    border-radius: 10px;
+.chatgpt-box textarea {
+    border: 1px solid #ccc;
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 14px;
     width: 100%;
-    font-size: 14px;
-    background-color: #fafafa;
+    height: 100px;
+    resize: vertical;
+    background-color: #f9f9f9;
     color: #333;
-    margin-bottom: 10px;
+    font-family: 'Segoe UI', sans-serif;
 }
 
-.custom-form button {
-    background-color: #004d40;
+.chatgpt-box button {
+    background-color: #10a37f;
     color: white;
-    padding: 8px 20px;
     border: none;
-    border-radius: 8px;
-    font-size: 14px;
+    padding: 8px 20px;
+    border-radius: 10px;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    float: right;
+    margin-top: 8px;
 }
 
-.custom-form button:hover {
-    background-color: #00695c;
+.chatgpt-box button:hover {
+    background-color: #0e8b6b;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# 入力フォーム
-with st.form(key="chat_form", clear_on_submit=True):
-    st.markdown('<div class="custom-form">', unsafe_allow_html=True)
 
-    user_q = st.text_input("", placeholder="質問をどうぞ…")
+# ChatGPT風入力フォーム表示
+with st.form(key="chat_form", clear_on_submit=True):
+    st.markdown('<div class="chatgpt-box">', unsafe_allow_html=True)
+
+    user_q = st.text_area("", placeholder="メッセージを入力...", height=100, key="user_input")
 
     send = st.form_submit_button("送信")
 
     st.markdown('</div>', unsafe_allow_html=True)
+
 
 
 # チャット送信処理
