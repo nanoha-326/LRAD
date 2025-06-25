@@ -1,24 +1,17 @@
 import streamlit as st
-st.set_page_config(page_title="LRAD Insights", layout="wide")
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import datetime
+import os
+import gspread
+import json
+import numpy as np
+from google.oauth2.service_account import Credentials
+from openai import OpenAI
+from sklearn.cluster import KMeans
+
 def show_insights():
-    if "is_admin" not in st.session_state:
-        st.session_state["is_admin"] = False
-
-    if not st.session_state["is_admin"]:
-        with st.form("admin_login_form"):
-            st.title("🔐 管理者専用 Insights ダッシュボード")
-            password = st.text_input("パスワードを入力してください", type="password")
-            submitted = st.form_submit_button("ログイン")
-
-            if submitted:
-                if password == CORRECT_PASSWORD:
-                    st.session_state["is_admin"] = True
-                    st.success("ログイン成功")
-                    st.experimental_rerun()
-                else:
-                    st.error("パスワードが間違っています。")
-        st.stop()
-
     st.title("📊 LRADサポートチャット インサイトダッシュボード")
 
     client = OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
