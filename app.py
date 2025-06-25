@@ -177,16 +177,27 @@ def get_embedding(text):
 # --- FAQ読み込み ---
 @st.cache_data
 def load_faq(path="faq_all_with_embed.csv"):
+    if not os.path.exists(path):
+        st.error(f"{path} が見つかりません。")
+        return pd.DataFrame()
+    if os.path.getsize(path) == 0:
+        st.error(f"{path} が空ファイルです。")
+        return pd.DataFrame()
+
     def parse_embedding(val):
         try:
             return np.array(json.loads(val))
         except Exception:
             return np.zeros(1536)
-    df = pd.read_csv(path)
-    df["embedding"] = df["embedding"].apply(parse_embedding)
-    return df
 
-faq_df = load_faq()
+    try:
+        df = pd.read_csv(path)
+        df["embedding"] = df["embedding"].apply(parse_embedding)
+        return df
+    except Exception as e:
+        st.error(f"FAQ読み込みエラー: {e}")
+        return pd.DataFrame()
+
 
 @st.cache_data
 def load_common_faq(path="faq_common.csv"):
@@ -295,27 +306,3 @@ if st.session_state.chat_log and st.session_state.chat_log[-1][1] is None:
     append_to_csv(last_q, answer)
     append_to_gsheet(last_q, answer)
     st.experimental_rerun()
-
-@st.cache_data
-def load_faq(path="faq_all_with_embed.csv"):
-    if not os.path.exists(path):
-        st.error(f"{path} が見つかりません。")
-        return pd.DataFrame()
-    if os.path.getsize(path) == 0:
-        st.error(f"{path} が空ファイルです。")
-        return pd.DataFrame()
-    
-    def parse_embedding(val):
-        try:
-            return np.array(json.loads(val))
-        except Exception:
-            return np.zeros(1536)
-
-    try:
-        df = pd.read_csv(path)
-        df["embedding"] = df["embedding"].apply(parse_embedding)
-        return df
-    except Exception as e:
-        st.error(f"FAQ読み込みエラー: {e}")
-        return pd.DataFrame()
-
