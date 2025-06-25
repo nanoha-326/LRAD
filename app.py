@@ -19,11 +19,9 @@ st.sidebar.title("⚙️ 設定")
 font_size = st.sidebar.selectbox("文字サイズを選択", ["小", "中", "大"], index=1)
 lang = st.sidebar.selectbox("言語を選択", ["日本語", "English"], index=0)
 
-# 文字サイズマップ(px)
 font_size_map = {"小": "14px", "中": "18px", "大": "24px"}
 selected_font_size = font_size_map[font_size]
 
-# --- 定型メッセージ（言語切替用） ---
 WELCOME_MESSAGES_JP = [
     "ようこそ！LRADチャットボットへ。",
     "あなたの疑問にお応えします。",
@@ -43,7 +41,6 @@ LOGIN_ERROR_MSG = "パスワードが間違っています" if lang == "日本�
 WELCOME_CAPTION = "※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。" if lang == "日本語" else "This chatbot responds based on FAQ and AI, but may not answer all questions accurately."
 CHAT_INPUT_PLACEHOLDER = "質問をどうぞ..." if lang == "日本語" else "Ask your question..."
 
-# --- ログイン＆ウェルカムメッセージ部分 ---
 CORRECT_PASSWORD = "mypassword"
 
 if "authenticated" not in st.session_state:
@@ -120,7 +117,6 @@ if st.session_state["show_welcome"]:
         st.session_state["show_welcome"] = False
         st.experimental_rerun()
 
-# --- OpenAI初期化 ---
 try:
     client = OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
 except Exception as e:
@@ -128,7 +124,6 @@ except Exception as e:
     st.error(traceback.format_exc())
     st.stop()
 
-# --- 画像表示 ---
 def get_base64_image(path):
     try:
         with open(path, "rb") as img_file:
@@ -151,7 +146,6 @@ st.markdown(
 
 st.caption(WELCOME_CAPTION)
 
-# --- 入力バリデーション ---
 def is_valid_input(text: str) -> bool:
     text = text.strip()
     if not (3 <= len(text) <= 300):
@@ -164,7 +158,6 @@ def is_valid_input(text: str) -> bool:
         return False
     return True
 
-# --- Embedding取得 ---
 def get_embedding(text):
     text = text.replace("\n", " ")
     try:
@@ -174,21 +167,12 @@ def get_embedding(text):
         st.error(f"埋め込み取得に失敗しました: {e}")
         return np.zeros(1536)
 
-# --- FAQ読み込み ---
 @st.cache_data
-def load_faq(path="faq_all.csv"):  # ✅ 存在するファイルに変更
+def load_faq(path="faq_all.csv"):
     df = pd.read_csv(path)
-    df["embedding"] = df["質問"].apply(lambda x: get_embedding(str(x)))  # 質問列からEmbeddingを動的生成
+    df["embedding"] = df["質問"].apply(lambda x: get_embedding(str(x)))
     return df
 
-        # 埋め込み付きで保存
-        raw_df.to_csv(path, index=False)
-
-    df = pd.read_csv(path)
-    df["embedding"] = df["embedding"].apply(parse_embedding)
-    return df
-
-# FAQデータの読み込みをここで実行
 faq_df = load_faq()
 
 @st.cache_data
@@ -208,7 +192,6 @@ with st.expander("💡 よくある質問", expanded=False):
         for _, row in sample.iterrows():
             st.markdown(f"**Q. {row['質問']}**\n\nA. {row['回答']}")
 
-# --- FAQ類似質問検索 ---
 def find_top_similar(q, df, k=1):
     q_vec = get_embedding(q)
     try:
@@ -219,7 +202,6 @@ def find_top_similar(q, df, k=1):
     except Exception:
         return None, None
 
-# --- AI回答生成 ---
 def generate_response(user_q, ref_q, ref_a):
     system_prompt = (
         "あなたはLRAD（遠赤外線電子熱分解装置）の専門家です。\n"
@@ -234,7 +216,6 @@ def generate_response(user_q, ref_q, ref_a):
         st.error(f"AI回答生成に失敗しました: {e}")
         return "申し訳ありません、AIによる回答生成に失敗しました。"
 
-# --- チャットログ保存 ---
 def append_to_csv(q, a, path="chat_logs.csv"):
     try:
         df = pd.DataFrame([{ "timestamp": pd.Timestamp.now().isoformat(), "question": q, "answer": a }])
@@ -265,17 +246,14 @@ def append_to_gsheet(q, a):
     except Exception as e:
         st.warning(f"Google Sheetsへの保存に失敗しました: {e}")
 
-# --- セッション初期化 ---
 if "chat_log" not in st.session_state:
     st.session_state.chat_log = []
 
-# --- 過去ログ表示 ---
 for q, a in st.session_state.chat_log:
     st.chat_message("user").write(q)
     if a:
         st.chat_message("assistant").write(a)
 
-# --- ユーザー入力 ---
 user_q = st.chat_input(CHAT_INPUT_PLACEHOLDER)
 
 if user_q:
@@ -285,7 +263,6 @@ if user_q:
         st.session_state.chat_log.append((user_q, None))
         st.experimental_rerun()
 
-# --- AI応答生成処理 ---
 if st.session_state.chat_log and st.session_state.chat_log[-1][1] is None:
     last_q = st.session_state.chat_log[-1][0]
     ref_q, ref_a = find_top_similar(last_q, faq_df)
