@@ -14,6 +14,13 @@ import time
 st.set_page_config(page_title="LRADチャット", layout="centered")
 
 # サイドバー言語選択（先に言語を決める）
+# 1. まずサイドバーで言語選択（固定文言）
+lang_selection = st.sidebar.selectbox(
+    "言語を選択 / Select Language",
+    ["日本語", "English"],
+    index=0,
+    key="language_selector"
+)
 lang = st.sidebar.selectbox(
     "言語を選択" if lang == "日本語" else "Select Language",
     ["日本語", "English"] if lang == "日本語" else ["Japanese", "English"],
