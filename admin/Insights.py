@@ -1,18 +1,5 @@
 import streamlit as st
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-import datetime
-import os
-import gspread
-import json
-import numpy as np
-from google.oauth2.service_account import Credentials
-from openai import OpenAI
-from sklearn.cluster import KMeans
-
-CORRECT_PASSWORD = "mypassword"
-
+st.set_page_config(page_title="LRAD Insights", layout="wide")
 def show_insights():
     if "is_admin" not in st.session_state:
         st.session_state["is_admin"] = False
