@@ -198,6 +198,8 @@ def load_faq(path="faq_all_with_embed.csv"):
         st.error(f"FAQ読み込みエラー: {e}")
         return pd.DataFrame()
 
+# FAQデータの読み込みをここで実行
+faq_df = load_faq()
 
 @st.cache_data
 def load_common_faq(path="faq_common.csv"):
