@@ -160,15 +160,19 @@ def get_base64_image(path):
 
 image_base64 = get_base64_image("LRADimg.png")
 
+# 画像の下のタイトル表示部分
+chat_title = "LRADサポートチャット" if lang == "日本語" else "LRAD Support Chat"
+
 st.markdown(
     f"""
     <div style="display:flex; align-items:center;">
         <img src="data:image/png;base64,{image_base64}" width="80" style="margin-right:10px;">
-        <h1 style="margin:0;">LRADサポートチャット</h1>
+        <h1 style="margin:0;">{chat_title}</h1>
     </div>
     """,
     unsafe_allow_html=True,
 )
+
 
 st.caption(WELCOME_CAPTION)
 
