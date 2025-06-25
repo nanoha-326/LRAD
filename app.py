@@ -226,4 +226,12 @@ def generate_response(user_q, ref_q, ref_a):
     system_prompt = (
         "あなたはLRAD（遠赤外線電子熱分解装置）の専門家です。\n"
         f"FAQ質問: {ref_q}\nFAQ回答: {ref_a}\n"
-        "この情報をもと
+        "この情報をもとに200文字以内で簡潔にユーザーの質問に答えてください。"
+    )
+    messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_q}]
+    try:
+        res = client.chat.completions.create(model="gpt-3.5-turbo", messages=messages, temperature=0.3)
+        return res.choices[0].message.content.strip()
+    except Exception as e:
+        st.error(f"AI回答生成に失敗しました: {e}")
+        return "申し訳ありません、AIによる回答生成に失敗しました。"
