@@ -268,3 +268,30 @@ if "chat_log" not in st.session_state:
 
 # --- 過去ログ表示 ---
 for q, a in st.session_state.chat_log:
+    st.chat_message("user").write(q)
+    if a:
+        st.chat_message("assistant").write(a)
+
+# --- ユーザー入力 ---
+user_q = st.chat_input(CHAT_INPUT_PLACEHOLDER)
+
+if user_q:
+    if not is_valid_input(user_q):
+        st.warning("入力が不正です。3〜300文字、記号率30%未満にしてください。")
+    else:
+        st.session_state.chat_log.append((user_q, None))
+        st.experimental_rerun()
+
+# --- AI応答生成処理 ---
+if st.session_state.chat_log and st.session_state.chat_log[-1][1] is None:
+    last_q = st.session_state.chat_log[-1][0]
+    ref_q, ref_a = find_top_similar(last_q, faq_df)
+    if ref_q is None:
+        answer = "申し訳ありません、関連FAQが見つかりませんでした。"
+    else:
+        with st.spinner("回答生成中…"):
+            answer = generate_response(last_q, ref_q, ref_a)
+    st.session_state.chat_log[-1] = (last_q, answer)
+    append_to_csv(last_q, answer)
+    append_to_gsheet(last_q, answer)
+    st.experimental_rerun()
