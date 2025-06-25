@@ -177,26 +177,32 @@ def get_embedding(text):
 # --- FAQ読み込み ---
 @st.cache_data
 def load_faq(path="faq_all_with_embed.csv"):
-    if not os.path.exists(path):
-        st.error(f"{path} が見つかりません。")
-        return pd.DataFrame()
-    if os.path.getsize(path) == 0:
-        st.error(f"{path} が空ファイルです。")
-        return pd.DataFrame()
-
     def parse_embedding(val):
         try:
             return np.array(json.loads(val))
         except Exception:
             return np.zeros(1536)
 
-    try:
-        df = pd.read_csv(path)
-        df["embedding"] = df["embedding"].apply(parse_embedding)
-        return df
-    except Exception as e:
-        st.error(f"FAQ読み込みエラー: {e}")
-        return pd.DataFrame()
+    if not os.path.exists(path):
+        raw_df = pd.read_csv("faq_all.csv")
+        if "質問" not in raw_df.columns or "回答" not in raw_df.columns:
+            st.error("faq_all.csv に '質問' または '回答' 列がありません。")
+            return pd.DataFrame()
+
+        st.info("FAQの埋め込みを初期生成中です…")
+
+        embeddings = []
+        for q in raw_df["質問"]:
+            emb = get_embedding(q)
+            embeddings.append(json.dumps(emb.tolist()))
+        raw_df["embedding"] = embeddings
+
+        # 埋め込み付きで保存
+        raw_df.to_csv(path, index=False)
+
+    df = pd.read_csv(path)
+    df["embedding"] = df["embedding"].apply(parse_embedding)
+    return df
 
 # FAQデータの読み込みをここで実行
 faq_df = load_faq()
