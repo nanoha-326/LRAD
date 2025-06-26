@@ -241,6 +241,9 @@ with st.expander("💡 よくある質問", expanded=False):
             st.markdown(f"**Q. {row['質問']}**")
             st.markdown(f"A. {row['回答']}")
             st.markdown("---")  # 区切り線（任意）
+            
+st.write("📄 よくある質問の件数:", len(common_faq_df))
+st.dataframe(common_faq_df)
 
 
 def find_top_similar(q, df, k=1):
