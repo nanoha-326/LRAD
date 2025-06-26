@@ -13,6 +13,18 @@ import time
 
 st.set_page_config(page_title="LRADチャット", layout="centered")
 
+# --- フォントサイズをCSSで適用 ---
+st.markdown(
+    f"""
+    <style>
+        div[data-testid="stVerticalBlock"] * {{
+            font-size: {selected_font_size};
+        }}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 # サイドバー言語選択（先に言語を決める）
 lang_selection = st.sidebar.selectbox(
     "言語を選択 / Select Language",
