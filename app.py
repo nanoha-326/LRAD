@@ -65,16 +65,6 @@ st.markdown(
             cursor: pointer !important;
             width: 100% !important;
         }}
-        input[type="password"] {{
-            font-size: 1.2em !important;
-            padding: 0.5em !important;
-            width: 100% !important;
-            max-width: 300px !important;
-            box-sizing: border-box !important;
-        }}
-        div[data-testid="stTextInput"] > div > div > input[type="password"] {{
-            padding-right: 2.5em;
-        }}
 
         div[data-testid="stTextInput"] > div > div > div {{
             position: absolute;
