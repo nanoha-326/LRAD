@@ -106,20 +106,21 @@ if "fade_out" not in st.session_state:
 
 def password_check():
     if not st.session_state["authenticated"]:
-        st.title("LOGIN_TITLE")
-        with st.form("login_form"):
-            password = st.text_input("", type="password", placeholder="LOGIN_PASSWORD_LABEL")
-            submitted = st.form_submit_button("LOGIN")
-            if submitted:
-                if password == "mypassword":
-                    st.session_state["authenticated"] = True
-                    st.session_state["show_welcome"] = True
-                    st.session_state["welcome_message"] = random.choice(WELCOME_MESSAGES)
-                    st.session_state["fade_out"] = False
-                    st.experimental_rerun()
-                else:
-                    st.error("パスワードが間違っています")
-        st.stop()
+    with st.form("login_form"):
+        st.title(LOGIN_TITLE)
+        st.write("LRADチャットボットにログインしてください。" if is_jp else "Please login to use the LRAD Chat Assistant.")
+        password = st.text_input(LOGIN_PASSWORD_LABEL, type="password", placeholder=LOGIN_PASSWORD_LABEL, key="pw_input")
+        submitted = st.form_submit_button("ログイン" if is_jp else "Login")
+        if submitted:
+            if password == CORRECT_PASSWORD:
+                st.session_state.authenticated = True
+                st.session_state.show_welcome = True
+                st.session_state.welcome_message = random.choice(WELCOME_MESSAGES)
+                st.session_state.fade_out = False
+                st.experimental_rerun()
+            else:
+                st.error(LOGIN_ERROR_MSG)
+    st.stop()
 
 password_check()
 
