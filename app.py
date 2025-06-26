@@ -291,7 +291,7 @@ user_q = st.chat_input(CHAT_INPUT_PLACEHOLDER)
 
 if user_q:
     if not is_valid_input(user_q):
-        st.warning("入力が不正です。3〜300文字、記号率30%未満にしてください。")
+        st.warning("入力が不正です。3〜300文字以内にしてください。")
     else:
         st.session_state.chat_log.append((user_q, None))
         st.experimental_rerun()
