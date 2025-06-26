@@ -97,10 +97,13 @@ def show_welcome_screen():
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 56px;
+            font-size: 10vw;  /* 画面幅の10％で大きく */
             font-weight: bold;
+            text-align: center;
+            padding: 0 5vw;
             animation: fadein 1.5s forwards;
             z-index: 9999;
+            line-height: 1.2;
         }}
         .fadeout {{ animation: fadeout 1.5s forwards; }}
         @keyframes fadein {{ from {{ opacity: 0; }} to {{ opacity: 1; }} }}
@@ -112,6 +115,7 @@ def show_welcome_screen():
         """,
         unsafe_allow_html=True,
     )
+
 
 if st.session_state["show_welcome"]:
     show_welcome_screen()
