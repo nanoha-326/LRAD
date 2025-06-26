@@ -13,7 +13,6 @@ import time
 
 st.set_page_config(page_title="LRADチャット", layout="centered")
 
-# Step 1: 言語設定とサイドバーUI
 lang = st.sidebar.selectbox("言語を選択 / Select Language", ["日本語", "English"], index=0)
 
 sidebar_title = "⚙️ 設定" if lang == "日本語" else "⚙️ Settings"
@@ -26,15 +25,54 @@ font_size_map_jp = {"小": "14px", "中": "18px", "大": "24px"}
 font_size_map_en = {"Small": "14px", "Medium": "18px", "Large": "24px"}
 selected_font_size = font_size_map_jp[font_size] if lang == "日本語" else font_size_map_en[font_size]
 
-st.markdown(
-    f"""
-    <style>
-        div[data-testid="stVerticalBlock"] * {{ font-size: {selected_font_size}; }}
-        section[data-testid="stSidebar"] * {{ font-size: {selected_font_size}; }}
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+st.markdown(f"""
+<style>
+    div[data-testid="stVerticalBlock"] * {{ font-size: {selected_font_size}; }}
+    section[data-testid="stSidebar"] * {{ font-size: {selected_font_size}; }}
+    .login-outer {{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        width: 100vw;
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 9999;
+        background-color: white;
+    }}
+    .login-container {{
+        text-align: left;
+        max-width: 400px;
+        width: 100%;
+        padding: 2em;
+    }}
+    .login-title {{
+        font-size: 2.5em;
+        margin-bottom: 1em;
+        text-align: center;
+    }}
+    .login-button button {{
+        background-color: #333 !important;
+        color: white !important;
+        border: none;
+        padding: 0.5em 2em;
+        font-size: 1.2em;
+        border-radius: 4px;
+        margin-top: 1em;
+        width: 100%;
+    }}
+    input[type="password"] {{
+        font-size: 1.2em;
+        padding: 0.5em;
+        width: 100%;
+        max-width: 300px;
+    }}
+    .chat-header h1 {{
+        font-size: 36px !important;
+    }}
+</style>
+""", unsafe_allow_html=True)
 
 WELCOME_MESSAGES = [
     "ようこそ！LRADチャットボットへ。",
@@ -45,8 +83,8 @@ WELCOME_MESSAGES = [
     "Your questions, our answers."
 ]
 
-LOGIN_TITLE = "ログイン" if lang == "日本語" else "Login"
-LOGIN_PASSWORD_LABEL = "パスワードを入力" if lang == "日本語" else "Enter Password"
+LOGIN_TITLE = "LRADチャットへログイン" if lang == "日本語" else "Login to LRAD Chat"
+LOGIN_PASSWORD_LABEL = "パスワードを入力してください" if lang == "日本語" else "Please enter password"
 LOGIN_ERROR_MSG = "パスワードが間違っています" if lang == "日本語" else "Incorrect password"
 WELCOME_CAPTION = "※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。" if lang == "日本語" else "This chatbot responds based on FAQ and AI, but may not answer all questions accurately."
 CHAT_INPUT_PLACEHOLDER = "質問をどうぞ..." if lang == "日本語" else "Ask your question..."
@@ -60,15 +98,15 @@ if "welcome_message" not in st.session_state:
     st.session_state["welcome_message"] = ""
 if "fade_out" not in st.session_state:
     st.session_state["fade_out"] = False
-if "chat_history" not in st.session_state:
-    st.session_state["chat_history"] = []
 
 def password_check():
     if not st.session_state["authenticated"]:
+        st.markdown('<div class="login-outer">', unsafe_allow_html=True)
+        st.markdown('<div class="login-container">', unsafe_allow_html=True)
+        st.markdown(f'<div class="login-title">{LOGIN_TITLE}</div>', unsafe_allow_html=True)
         with st.form("login_form"):
-            st.title(LOGIN_TITLE)
-            password = st.text_input(LOGIN_PASSWORD_LABEL, type="password")
-            submitted = st.form_submit_button(LOGIN_TITLE)
+            password = st.text_input("", type="password", placeholder=LOGIN_PASSWORD_LABEL, label_visibility="collapsed")
+            submitted = st.form_submit_button("ログイン")
             if submitted:
                 if password == CORRECT_PASSWORD:
                     st.session_state["authenticated"] = True
@@ -78,6 +116,7 @@ def password_check():
                     st.experimental_rerun()
                 else:
                     st.error(LOGIN_ERROR_MSG)
+        st.markdown('</div></div>', unsafe_allow_html=True)
         st.stop()
 
 password_check()
@@ -122,6 +161,17 @@ if st.session_state["show_welcome"]:
         time.sleep(1)
         st.session_state["show_welcome"] = False
         st.experimental_rerun()
+
+# 続きのチャット処理などはここに記述
+
+# タイトル表示
+st.markdown("""
+<div class="chat-header">
+    <h1>LRADサポートチャット</h1>
+</div>
+""", unsafe_allow_html=True)
+
+st.caption(WELCOME_CAPTION)
 
 try:
     client = OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
