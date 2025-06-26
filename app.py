@@ -217,15 +217,29 @@ faq_df = load_faq()
 
 
 @st.cache_data
-def load_common_faq(path="faq_common.csv"):
+def load_common_faq_jp(path="faq_common_jp.csv"):
     try:
         df = pd.read_csv(path)
         return df
     except Exception as e:
-        st.error(f"よくある質問ファイルの読み込みに失敗しました: {e}")
+        st.error(f"よくある質問ファイル（日本語）の読み込みに失敗しました: {e}")
         return pd.DataFrame(columns=["質問", "回答"])
 
-common_faq_df = load_common_faq()
+@st.cache_data
+def load_common_faq_en(path="faq_common_en.csv"):
+    try:
+        df = pd.read_csv(path)
+        return df
+    except Exception as e:
+        st.error(f"FAQ file (English) loading failed: {e}")
+        return pd.DataFrame(columns=["question", "answer"])
+
+
+if lang == "日本語":
+    common_faq_df = load_common_faq_jp()
+else:
+    common_faq_df = load_common_faq_en()
+
 
 with st.expander("💡 よくある質問" if lang == "日本語" else "💡 FAQ", expanded=False):
     if not common_faq_df.empty:
@@ -234,23 +248,38 @@ with st.expander("💡 よくある質問" if lang == "日本語" else "💡 FAQ
         
         search_keyword = st.text_input(search_label, "")
         if search_keyword:
-            df_filtered = common_faq_df[
-                common_faq_df["質問"].str.contains(search_keyword, case=False, na=False) |
-                common_faq_df["回答"].str.contains(search_keyword, case=False, na=False)
-            ]
+            if lang == "日本語":
+                df_filtered = common_faq_df[
+                    common_faq_df["質問"].str.contains(search_keyword, case=False, na=False) |
+                    common_faq_df["回答"].str.contains(search_keyword, case=False, na=False)
+                ]
+            else:
+                df_filtered = common_faq_df[
+                    common_faq_df["question"].str.contains(search_keyword, case=False, na=False) |
+                    common_faq_df["answer"].str.contains(search_keyword, case=False, na=False)
+                ]
             if df_filtered.empty:
                 st.info(no_match_msg)
             else:
                 for _, row in df_filtered.iterrows():
-                    st.markdown(f"**Q. {row['質問']}**")
-                    st.markdown(f"A. {row['回答']}")
+                    if lang == "日本語":
+                        st.markdown(f"**Q. {row['質問']}**")
+                        st.markdown(f"A. {row['回答']}")
+                    else:
+                        st.markdown(f"**Q. {row['question']}**")
+                        st.markdown(f"A. {row['answer']}")
                     st.markdown("---")
         else:
             sample = common_faq_df.sample(n=min(3, len(common_faq_df)))
             for _, row in sample.iterrows():
-                st.markdown(f"**Q. {row['質問']}**")
-                st.markdown(f"A. {row['回答']}")
+                if lang == "日本語":
+                    st.markdown(f"**Q. {row['質問']}**")
+                    st.markdown(f"A. {row['回答']}")
+                else:
+                    st.markdown(f"**Q. {row['question']}**")
+                    st.markdown(f"A. {row['answer']}")
                 st.markdown("---")
+
 
 
 
