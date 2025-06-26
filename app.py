@@ -28,15 +28,21 @@ selected_font_size = font_size_map_jp[font_size] if lang == "日本語" else fon
 st.markdown(
     f"""
     <style>
-        div[data-testid="stVerticalBlock"] * {{ font-size: {selected_font_size}; }}
-        section[data-testid="stSidebar"] * {{ font-size: {selected_font_size}; }}
+        div[data-testid="stVerticalBlock"] * {{
+            font-size: {selected_font_size};
+        }}
+        section[data-testid="stSidebar"] * {{
+            font-size: {selected_font_size};
+        }}
         .login-container {{
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            height: 90vh;
-            text-align: center;
+            text-align: left;
         }}
         .login-button button {{
             background-color: #333 !important;
@@ -51,12 +57,12 @@ st.markdown(
             font-size: 1.2em;
             padding: 0.5em;
             width: 300px;
-            text-align: center;
         }}
     </style>
     """,
     unsafe_allow_html=True
 )
+
 
 WELCOME_MESSAGES = [
     "ようこそ！LRADチャットボットへ。",
