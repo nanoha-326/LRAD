@@ -13,11 +13,28 @@ import time
 
 st.set_page_config(page_title="LRADチャット", layout="centered")
 
-# --- フォントサイズをCSSで適用 ---
+# Step 1: 言語設定とサイドバーUI
+lang = st.sidebar.selectbox("言語を選択 / Select Language", ["日本語", "English"], index=0)
+
+sidebar_title = "⚙️ 設定" if lang == "日本語" else "⚙️ Settings"
+font_size_label = "文字サイズを選択" if lang == "日本語" else "Select Font Size"
+font_size_options = ["小", "中", "大"] if lang == "日本語" else ["Small", "Medium", "Large"]
+st.sidebar.title(sidebar_title)
+font_size = st.sidebar.selectbox(font_size_label, font_size_options, index=1)
+
+# Step 2: サイズマップと適用サイズ決定
+font_size_map_jp = {"小": "14px", "中": "18px", "大": "24px"}
+font_size_map_en = {"Small": "14px", "Medium": "18px", "Large": "24px"}
+selected_font_size = font_size_map_jp[font_size] if lang == "日本語" else font_size_map_en[font_size]
+
+# Step 3: CSSで反映（この時点で selected_font_size が定義済）
 st.markdown(
     f"""
     <style>
         div[data-testid="stVerticalBlock"] * {{
+            font-size: {selected_font_size};
+        }}
+        section[data-testid="stSidebar"] * {{
             font-size: {selected_font_size};
         }}
     </style>
@@ -25,23 +42,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# サイドバー言語選択（先に言語を決める）
-lang_selection = st.sidebar.selectbox(
-    "言語を選択 / Select Language",
-    ["日本語", "English"],
-    index=0,
-    key="language_selector"
-)
-lang = lang_selection
-
-# サイドバータイトルと言語ごとのラベル・選択肢
-sidebar_title = "⚙️ 設定" if lang == "日本語" else "⚙️ Settings"
-font_size_label = "文字サイズを選択" if lang == "日本語" else "Select Font Size"
-font_size_options = ["小", "中", "大"] if lang == "日本語" else ["Small", "Medium", "Large"]
-
-st.sidebar.title(sidebar_title)
-
-font_size = st.sidebar.selectbox(font_size_label, font_size_options, index=1)
 
 # 文字サイズマップ（日本語・英語それぞれ対応）
 font_size_map_jp = {"小": "14px", "中": "18px", "大": "24px"}
