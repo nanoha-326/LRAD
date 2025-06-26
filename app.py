@@ -226,70 +226,64 @@ def generate_response(user_q, ref_q, ref_a):
         st.error(f"AI回答生成に失敗しました: {e}")
         return "申し訳ありません。回答の生成中にエラーが発生しました。"
 
-def append_to_csv(question, answer):
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    row = [now, question, answer]
-    csv_path = "chat_log.csv"
+def append_to_csv(q, a, path="chat_logs.csv"):
     try:
-        if os.path.exists(csv_path):
-            df = pd.read_csv(csv_path)
-            df = df.append(pd.DataFrame([row], columns=["timestamp", "question", "answer"]), ignore_index=True)
-            df.to_csv(csv_path, index=False)
+        df = pd.DataFrame([{"timestamp": pd.Timestamp.now().isoformat(), "question": q, "answer": a}])
+        if not os.path.exists(path):
+            df.to_csv(path, index=False)
         else:
-            pd.DataFrame([row], columns=["timestamp", "question", "answer"]).to_csv(csv_path, index=False)
-    except Exception:
-        pass
+            df.to_csv(path, mode="a", header=False, index=False)
+    except Exception as e:
+        st.warning(f"CSVへの保存に失敗しました: {e}")
 
-def append_to_gsheet(question, answer):
-    # Google Sheets連携は設定に応じて実装してください
-    pass
 
-if st.session_state["authenticated"] and not st.session_state["show_welcome"]:
+def append_to_gsheet(q, a):
+    try:
+        JST = timezone(timedelta(hours=9))
+        timestamp = datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S")
+        sheet_key = st.secrets["GoogleSheets"]["sheet_key"]
+        service_account_info = st.secrets["GoogleSheets"]["service_account_info"]
+        if isinstance(service_account_info, str):
+            service_account_info = json.loads(service_account_info)
+        scopes = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive",
+        ]
+        creds = Credentials.from_service_account_info(service_account_info, scopes=scopes)
+        gc = gspread.authorize(creds)
+        sh = gc.open_by_key(sheet_key)
+        worksheet = sh.sheet1
+        worksheet.append_row([timestamp, q, a], value_input_option="USER_ENTERED")
+    except Exception as e:
+        st.warning(f"Google Sheetsへの保存に失敗しました: {e}")
 
-    # チャット表示エリア（スクロール付き）
-    st.markdown("<div style='max-height:500px; overflow-y:auto; margin-bottom:80px;'>", unsafe_allow_html=True)
-    for chat in st.session_state["chat_history"]:
-        st.markdown(f"**Q. {chat['question']}**")
-        st.markdown(f"A. {chat['answer']}")
-        st.markdown("---")
-    st.markdown("</div>", unsafe_allow_html=True)
 
-    # 入力欄を画面下部に固定（cssで調整）
-    st.markdown(
-        """
-        <style>
-        .fixed-bottom-input {
-            position: fixed;
-            bottom: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 90%;
-            max-width: 700px;
-            background: white;
-            padding: 10px;
-            box-shadow: 0 0 5px #ccc;
-            border-radius: 8px;
-            z-index: 10000;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
+if "chat_log" not in st.session_state:
+    st.session_state.chat_log = []
 
-    # 入力フォーム（画面下部固定内）
-    with st.form(key="chat_form"):
-        user_input = st.text_input("", placeholder=CHAT_INPUT_PLACEHOLDER, key="user_input", label_visibility="collapsed")
-        submitted = st.form_submit_button("送信" if lang == "日本語" else "Send")
-        if submitted and user_input:
-            with st.spinner("回答を生成中..." if lang == "日本語" else "Generating answer..."):
-                ref_q, ref_a = find_top_similar(user_input, faq_df)
-                if ref_q and ref_a:
-                    answer = generate_response(user_input, ref_q, ref_a)
-                else:
-                    answer = "申し訳ありませんが、関連するFAQが見つかりませんでした。" if lang == "日本語" else "Sorry, no relevant FAQ found."
-                st.session_state["chat_history"].append({"question": user_input, "answer": answer})
-                append_to_csv(user_input, answer)
-                append_to_gsheet(user_input, answer)
-            st.experimental_rerun()
+for q, a in st.session_state.chat_log:
+    st.chat_message("user").write(q)
+    if a:
+        st.chat_message("assistant").write(a)
 
-    st.markdown('<div class="fixed-bottom-input"></div>', unsafe_allow_html=True)
+user_q = st.chat_input(CHAT_INPUT_PLACEHOLDER)
+
+if user_q:
+    if not is_valid_input(user_q):
+        st.warning("入力が不正です。3〜300文字、記号率30%未満にしてください。")
+    else:
+        st.session_state.chat_log.append((user_q, None))
+        st.experimental_rerun()
+
+if st.session_state.chat_log and st.session_state.chat_log[-1][1] is None:
+    last_q = st.session_state.chat_log[-1][0]
+    ref_q, ref_a = find_top_similar(last_q, faq_df)
+    if ref_q is None:
+        answer = "申し訳ありません、関連FAQが見つかりませんでした。"
+    else:
+        with st.spinner("回答生成中…"):
+            answer = generate_response(last_q, ref_q, ref_a)
+    st.session_state.chat_log[-1] = (last_q, answer)
+    append_to_csv(last_q, answer)
+    append_to_gsheet(last_q, answer)
+    st.experimental_rerun()
