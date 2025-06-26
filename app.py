@@ -91,7 +91,7 @@ def show_welcome_screen():
     elapsed = time.time() - st.session_state.welcome_start_time
     opacity = 1
     if elapsed > 3:
-        opacity = max(0, 1 - (elapsed - 3) / 1.5)
+        opacity = max(0, 1 - (elapsed - 10) / 1.5)
 
     st.markdown(f"""
     <style>
