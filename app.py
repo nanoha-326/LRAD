@@ -61,7 +61,6 @@ if "welcome_message" not in st.session_state:
 if "fade_out" not in st.session_state:
     st.session_state["fade_out"] = False
 
-
 def password_check():
     if not st.session_state["authenticated"]:
         with st.form("login_form"):
@@ -97,9 +96,7 @@ def show_welcome_screen():
             animation: fadein 1.5s forwards;
             z-index: 9999;
         }}
-        .fadeout {{
-            animation: fadeout 1.5s forwards;
-        }}
+        .fadeout {{ animation: fadeout 1.5s forwards; }}
         @keyframes fadein {{ from {{ opacity: 0; }} to {{ opacity: 1; }} }}
         @keyframes fadeout {{ from {{ opacity: 1; }} to {{ opacity: 0; }} }}
         </style>
@@ -180,9 +177,9 @@ with st.expander("💡 よくある質問" if lang == "日本語" else "💡 FAQ
         search_label = "🔎 キーワードで検索" if lang == "日本語" else "🔎 Search keyword"
         no_match_msg = "一致するFAQが見つかりませんでした。" if lang == "日本語" else "No matching FAQ found."
         search_keyword = st.text_input(search_label, "")
+        col_q = "質問" if lang == "日本語" else "question"
+        col_a = "回答" if lang == "日本語" else "answer"
         if search_keyword:
-            col_q = "質問" if lang == "日本語" else "question"
-            col_a = "回答" if lang == "日本語" else "answer"
             df_filtered = common_faq_df[common_faq_df[col_q].str.contains(search_keyword, na=False) | common_faq_df[col_a].str.contains(search_keyword, na=False)]
             if df_filtered.empty:
                 st.info(no_match_msg)
@@ -192,8 +189,6 @@ with st.expander("💡 よくある質問" if lang == "日本語" else "💡 FAQ
                     st.markdown(f"A. {row[col_a]}")
                     st.markdown("---")
         else:
-            col_q = "質問" if lang == "日本語" else "question"
-            col_a = "回答" if lang == "日本語" else "answer"
             sample = common_faq_df.sample(n=min(3, len(common_faq_df)))
             for _, row in sample.iterrows():
                 st.markdown(f"**Q. {row[col_q]}**")
