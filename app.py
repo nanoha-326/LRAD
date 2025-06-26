@@ -233,27 +233,31 @@ def load_common_faq(path="faq_common.csv"):
 
 common_faq_df = load_common_faq()
 
-with st.expander("💡 よくある質問", expanded=False):
+with st.expander("💡 よくある質問" if lang == "日本語" else "💡 FAQ", expanded=False):
     if not common_faq_df.empty:
-        search_keyword = st.text_input("🔎 キーワードで検索", "")
+        search_label = "🔎 キーワードで検索" if lang == "日本語" else "🔎 Search keyword"
+        no_match_msg = "一致するFAQが見つかりませんでした。" if lang == "日本語" else "No matching FAQ found."
+        
+        search_keyword = st.text_input(search_label, "")
         if search_keyword:
             keyword_df = common_faq_df[
                 common_faq_df["質問"].str.contains(search_keyword, case=False, na=False) |
                 common_faq_df["回答"].str.contains(search_keyword, case=False, na=False)
             ]
             if keyword_df.empty:
-                st.info("一致するFAQが見つかりませんでした。")
+                st.info(no_match_msg)
             else:
                 for _, row in keyword_df.iterrows():
-                    st.markdown(f"**Q. {row['質問']}**")
-                    st.markdown(f"A. {row['回答']}")
+                    st.markdown(f"**Q. {row['質問']}**" if lang == "日本語" else f"**Q. {row['質問']}**")
+                    st.markdown(f"A. {row['回答']}" if lang == "日本語" else f"A. {row['回答']}")
                     st.markdown("---")
         else:
             sample = common_faq_df.sample(n=min(3, len(common_faq_df)))
             for _, row in sample.iterrows():
-                st.markdown(f"**Q. {row['質問']}**")
-                st.markdown(f"A. {row['回答']}")
+                st.markdown(f"**Q. {row['質問']}**" if lang == "日本語" else f"**Q. {row['質問']}**")
+                st.markdown(f"A. {row['回答']}" if lang == "日本語" else f"A. {row['回答']}")
                 st.markdown("---")
+
 
 
 
