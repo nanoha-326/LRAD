@@ -29,13 +29,20 @@ st.markdown(
     <style>
         div[data-testid="stVerticalBlock"] * {{ font-size: {selected_font_size}; }}
         section[data-testid="stSidebar"] * {{ font-size: {selected_font_size}; }}
-        .login-container {{
+        .login-outer {{
             display: flex;
-            flex-direction: column;
-            align-items: center;
             justify-content: center;
-            height: 90vh;
+            align-items: center;
+            height: 100vh;
+        }}
+        .login-container {{
             text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }}
+        .login-title {{
+            font-size: 2em;
+            margin-bottom: 1em;
         }}
         .login-button button {{
             background-color: #333 !important;
@@ -49,10 +56,10 @@ st.markdown(
         input[type="password"] {{
             font-size: 1.2em;
             padding: 0.5em;
-            width: 300px;
-            text-align: left;
+            width: 100%;
+            max-width: 300px;
         }}
-        input[type="password"]::-ms-reveal {{ display: none; }}
+        input[type="password"]::-ms-reveal {{ display: block; position: absolute; right: 10px; }}
     </style>
     """,
     unsafe_allow_html=True
