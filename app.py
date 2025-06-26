@@ -266,6 +266,14 @@ for q, a in st.session_state.chat_log:
     if a:
         st.chat_message("assistant").write(a)
 
+def is_valid_input(text):
+    # 長さ：3〜300文字、記号率30%未満（記号 = 英数字以外）
+    if not (3 <= len(text) <= 300):
+        return False
+    symbol_count = sum(not c.isalnum() and not c.isspace() for c in text)
+    return (symbol_count / len(text)) < 0.3
+
+
 user_q = st.chat_input(CHAT_INPUT_PLACEHOLDER)
 
 if user_q:
