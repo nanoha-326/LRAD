@@ -43,12 +43,6 @@ st.markdown(
 )
 
 
-# 文字サイズマップ（日本語・英語それぞれ対応）
-font_size_map_jp = {"小": "14px", "中": "18px", "大": "24px"}
-font_size_map_en = {"Small": "14px", "Medium": "18px", "Large": "24px"}
-
-selected_font_size = font_size_map_jp[font_size] if lang == "日本語" else font_size_map_en[font_size]
-
 WELCOME_MESSAGES_JP = [
     "ようこそ！LRADチャットボットへ。",
     "あなたの疑問にお応えします。",
@@ -271,8 +265,6 @@ with st.expander("💡 よくある質問" if lang == "日本語" else "💡 FAQ
                     st.markdown(f"**Q. {row['question']}**")
                     st.markdown(f"A. {row['answer']}")
                 st.markdown("---")
-
-
 
 
 
