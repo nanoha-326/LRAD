@@ -71,7 +71,7 @@ def password_check():
     if not st.session_state.authenticated:
         with st.form("login_form"):
             st.title(LOGIN_TITLE)
-            password = st.text_input(LOGIN_PASSWORD_LABEL, type="password", placeholder=LOGIN_PASSWORD_LABEL)
+            password = st.text_input("", type="password", placeholder=LOGIN_PASSWORD_LABEL)
             submitted = st.form_submit_button("ログイン" if is_jp else "Login")
             if submitted:
                 if password == CORRECT_PASSWORD:
