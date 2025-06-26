@@ -28,7 +28,6 @@ WELCOME_MESSAGES = [
 ] if is_jp else [
     "Welcome to the LRAD Chat Assistant.",
     "Your questions, our answers."
-    "Hello. This is the dedicated chatbot for LRAD.",
 ]
 
 LOGIN_TITLE = "LRADチャットへログイン" if is_jp else "Login to LRAD Chat"
@@ -296,4 +295,38 @@ def is_valid_input(text):
     symbol_ratio = symbol_count / len(text)
     if symbol_ratio > 0.3:
         return False
-    return
+    return True
+
+# --- チャット履歴表示 ---
+for q, a in st.session_state.chat_log:
+    st.chat_message("user").write(q)
+    if a:
+        st.chat_message("assistant").write(a)
+
+# --- チャット入力欄（画面下部に固定） ---
+def chat_input_area():
+    input_text = st.chat_input(CHAT_INPUT_PLACEHOLDER)
+    return input_text
+
+user_q = chat_input_area()
+
+if user_q:
+    if not is_valid_input(user_q):
+        st.warning("入力が不正です。3〜300文字、記号率30%未満にしてください。")
+    else:
+        st.session_state.chat_log.append((user_q, None))
+        st.experimental_rerun()
+
+# --- AI回答生成 ---
+if st.session_state.chat_log and st.session_state.chat_log[-1][1] is None:
+    last_q = st.session_state.chat_log[-1][0]
+    ref_q, ref_a = find_top_similar(last_q, faq_df)
+    if ref_q is None:
+        answer = "申し訳ありません、関連FAQが見つかりませんでした。"
+    else:
+        with st.spinner("回答生成中…"):
+            answer = generate_response(last_q, ref_q, ref_a)
+    st.session_state.chat_log[-1] = (last_q, answer)
+    append_to_csv(last_q, answer)
+    append_to_gsheet(last_q, answer)
+    st.experimental_rerun()
