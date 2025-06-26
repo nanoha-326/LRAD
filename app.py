@@ -3,17 +3,15 @@ from openai import OpenAI
 import pandas as pd
 import numpy as np
 import base64
-import random
 import time
+import random
 import traceback
-import os
-import json
 from datetime import datetime, timezone, timedelta
 from sklearn.metrics.pairwise import cosine_similarity
+import json
+import os
 import gspread
 from google.oauth2.service_account import Credentials
-
-st.set_page_config(page_title="LRADチャット", layout="centered")
 
 # --- ページ設定 ---
 st.set_page_config(page_title="LRADチャット", layout="centered")
@@ -136,8 +134,7 @@ if st.session_state.show_welcome:
         st.session_state.show_welcome = False
         st.experimental_rerun()
 
-
-#######################################################################################
+# --- OpenAI クライアント初期化 ---
 try:
     client = OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
 except Exception as e:
@@ -145,6 +142,8 @@ except Exception as e:
     st.error(traceback.format_exc())
     st.stop()
 
+# --- FAQ読み込み ---
+@st.cache_data(show_spinner=False)
 def get_embedding(text):
     text = text.replace("\n", " ")
     try:
@@ -154,27 +153,31 @@ def get_embedding(text):
         st.error(f"埋め込み取得に失敗しました: {e}")
         return np.zeros(1536)
 
-@st.cache_data
+@st.cache_data(show_spinner=False)
 def load_faq(path="faq_all.csv"):
     df = pd.read_csv(path)
-    df["embedding"] = df["質問"].apply(lambda x: get_embedding(str(x)))
+    # 埋め込みが無ければ計算（初回のみ）
+    if "embedding" not in df.columns:
+        df["embedding"] = df["質問"].apply(lambda x: get_embedding(str(x)))
     return df
 
 faq_df = load_faq()
 
-faq_common_path = "faq_common_jp.csv" if lang == "日本語" else "faq_common_en.csv"
+faq_common_path = "faq_common_jp.csv" if is_jp else "faq_common_en.csv"
 
-@st.cache_data
+@st.cache_data(show_spinner=False)
 def load_common_faq(path):
     try:
         df = pd.read_csv(path)
         return df
     except Exception as e:
         st.error(f"よくある質問ファイルの読み込みに失敗しました: {e}")
-        return pd.DataFrame(columns=["質問", "回答"] if lang == "日本語" else ["question", "answer"])
+        cols = ["質問", "回答"] if is_jp else ["question", "answer"]
+        return pd.DataFrame(columns=cols)
 
 common_faq_df = load_common_faq(faq_common_path)
 
+# --- 画面タイトルと画像 ---
 image_base64 = ""
 try:
     with open("LRADimg.png", "rb") as img_file:
@@ -182,25 +185,29 @@ try:
 except Exception:
     pass
 
-title_text = "LRADサポートチャット" if lang == "日本語" else "LRAD Support Chat"
+title_text = "LRADサポートチャット" if is_jp else "LRAD Support Chat"
 st.markdown(f"""
-    <div style="display:flex; align-items:center;">
-        <img src="data:image/png;base64,{image_base64}" width="80" style="margin-right:10px;">
-        <h1 style="margin:0; font-size:32px;">{title_text}</h1>
-    </div>
+<div style="display:flex; align-items:center;">
+    <img src="data:image/png;base64,{image_base64}" width="80" style="margin-right:10px;">
+    <h1 style="margin:0; font-size:32px;">{title_text}</h1>
+</div>
 """, unsafe_allow_html=True)
 
 st.caption(WELCOME_CAPTION)
 
-with st.expander("💡 よくある質問" if lang == "日本語" else "💡 FAQ", expanded=False):
+# --- よくある質問エリア ---
+with st.expander("💡 よくある質問" if is_jp else "💡 FAQ", expanded=False):
     if not common_faq_df.empty:
-        search_label = "🔎 キーワードで検索" if lang == "日本語" else "🔎 Search keyword"
-        no_match_msg = "一致するFAQが見つかりませんでした。" if lang == "日本語" else "No matching FAQ found."
-        search_keyword = st.text_input(search_label, "")
-        col_q = "質問" if lang == "日本語" else "question"
-        col_a = "回答" if lang == "日本語" else "answer"
+        search_label = "🔎 キーワードで検索" if is_jp else "🔎 Search keyword"
+        no_match_msg = "一致するFAQが見つかりませんでした。" if is_jp else "No matching FAQ found."
+        search_keyword = st.text_input(search_label, key="faq_search")
+        col_q = "質問" if is_jp else "question"
+        col_a = "回答" if is_jp else "answer"
         if search_keyword:
-            df_filtered = common_faq_df[common_faq_df[col_q].str.contains(search_keyword, na=False) | common_faq_df[col_a].str.contains(search_keyword, na=False)]
+            df_filtered = common_faq_df[
+                common_faq_df[col_q].str.contains(search_keyword, na=False) |
+                common_faq_df[col_a].str.contains(search_keyword, na=False)
+            ]
             if df_filtered.empty:
                 st.info(no_match_msg)
             else:
@@ -215,8 +222,9 @@ with st.expander("💡 よくある質問" if lang == "日本語" else "💡 FAQ
                 st.markdown(f"A. {row[col_a]}")
                 st.markdown("---")
 
-def find_top_similar(q, df, k=1):
-    q_vec = get_embedding(q)
+# --- 類似質問検索 ---
+def find_top_similar(question, df, k=1):
+    q_vec = get_embedding(question)
     try:
         faq_vecs = np.stack(df["embedding"].to_numpy())
         sims = cosine_similarity([q_vec], faq_vecs)[0]
@@ -225,25 +233,32 @@ def find_top_similar(q, df, k=1):
     except Exception:
         return None, None
 
-def generate_response(user_q, ref_q, ref_a):
+# --- AI回答生成 ---
+def generate_response(user_question, ref_question, ref_answer):
     system_prompt = (
         "あなたはLRAD（遠赤外線電子熱分解装置）の専門家です。\n"
-        f"FAQ質問: {ref_q}\nFAQ回答: {ref_a}\n"
+        f"FAQ質問: {ref_question}\nFAQ回答: {ref_answer}\n"
         "この情報をもとに200文字以内で簡潔にユーザーの質問に答えてください。"
     )
-    messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_q}]
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_question}
+    ]
     try:
         res = client.chat.completions.create(
-            model="gpt-3.5-turbo", messages=messages, temperature=0.3
+            model="gpt-3.5-turbo",
+            messages=messages,
+            temperature=0.3,
         )
         return res.choices[0].message.content.strip()
     except Exception as e:
         st.error(f"AI回答生成に失敗しました: {e}")
         return "申し訳ありません。回答の生成中にエラーが発生しました。"
 
-def append_to_csv(q, a, path="chat_logs.csv"):
+# --- チャットログCSV保存 ---
+def append_to_csv(question, answer, path="chat_logs.csv"):
     try:
-        df = pd.DataFrame([{"timestamp": pd.Timestamp.now().isoformat(), "question": q, "answer": a}])
+        df = pd.DataFrame([{"timestamp": pd.Timestamp.now().isoformat(), "question": question, "answer": answer}])
         if not os.path.exists(path):
             df.to_csv(path, index=False)
         else:
@@ -251,8 +266,8 @@ def append_to_csv(q, a, path="chat_logs.csv"):
     except Exception as e:
         st.warning(f"CSVへの保存に失敗しました: {e}")
 
-
-def append_to_gsheet(q, a):
+# --- Google Sheets保存 ---
+def append_to_gsheet(question, answer):
     try:
         JST = timezone(timedelta(hours=9))
         timestamp = datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S")
@@ -268,37 +283,16 @@ def append_to_gsheet(q, a):
         gc = gspread.authorize(creds)
         sh = gc.open_by_key(sheet_key)
         worksheet = sh.sheet1
-        worksheet.append_row([timestamp, q, a], value_input_option="USER_ENTERED")
+        worksheet.append_row([timestamp, question, answer], value_input_option="USER_ENTERED")
     except Exception as e:
         st.warning(f"Google Sheetsへの保存に失敗しました: {e}")
 
-
-if "chat_log" not in st.session_state:
-    st.session_state.chat_log = []
-
-for q, a in st.session_state.chat_log:
-    st.chat_message("user").write(q)
-    if a:
-        st.chat_message("assistant").write(a)
-
-user_q = st.chat_input(CHAT_INPUT_PLACEHOLDER)
-
-if user_q:
-    if not is_valid_input(user_q):
-        st.warning("入力が不正です。3〜300文字、記号率30%未満にしてください。")
-    else:
-        st.session_state.chat_log.append((user_q, None))
-        st.experimental_rerun()
-
-if st.session_state.chat_log and st.session_state.chat_log[-1][1] is None:
-    last_q = st.session_state.chat_log[-1][0]
-    ref_q, ref_a = find_top_similar(last_q, faq_df)
-    if ref_q is None:
-        answer = "申し訳ありません、関連FAQが見つかりませんでした。"
-    else:
-        with st.spinner("回答生成中…"):
-            answer = generate_response(last_q, ref_q, ref_a)
-    st.session_state.chat_log[-1] = (last_q, answer)
-    append_to_csv(last_q, answer)
-    append_to_gsheet(last_q, answer)
-    st.experimental_rerun()
+# --- 入力バリデーション ---
+def is_valid_input(text):
+    if not (3 <= len(text) <= 300):
+        return False
+    symbol_count = sum(1 for c in text if not c.isalnum() and not c.isspace())
+    symbol_ratio = symbol_count / len(text)
+    if symbol_ratio > 0.3:
+        return False
+    return
