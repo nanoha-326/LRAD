@@ -28,6 +28,7 @@ WELCOME_MESSAGES = [
 ] if is_jp else [
     "Welcome to the LRAD Chat Assistant.",
     "Your questions, our answers."
+    "Hello. This is the dedicated chatbot for LRAD.",
 ]
 
 LOGIN_TITLE = "LRADチャットへログイン" if is_jp else "Login to LRAD Chat"
