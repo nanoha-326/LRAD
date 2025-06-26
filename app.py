@@ -15,93 +15,83 @@ from google.oauth2.service_account import Credentials
 
 st.set_page_config(page_title="LRADチャット", layout="centered")
 
-# --- 言語設定とフォントサイズ設定 ---
+# --- ページ設定 ---
+st.set_page_config(page_title="LRADチャット", layout="centered")
+
+# --- 多言語対応 ---
 lang = st.sidebar.selectbox("言語を選択 / Select Language", ["日本語", "English"], index=0)
+is_jp = lang == "日本語"
 
-sidebar_title = "⚙️ 設定" if lang == "日本語" else "⚙️ Settings"
-font_size_label = "文字サイズを選択" if lang == "日本語" else "Select Font Size"
-font_size_options = ["小", "中", "大"] if lang == "日本語" else ["Small", "Medium", "Large"]
-st.sidebar.title(sidebar_title)
-font_size = st.sidebar.selectbox(font_size_label, font_size_options, index=1)
-
-font_size_map_jp = {"小": "14px", "中": "18px", "大": "24px"}
-font_size_map_en = {"Small": "14px", "Medium": "18px", "Large": "24px"}
-selected_font_size = font_size_map_jp[font_size] if lang == "日本語" else font_size_map_en[font_size]
-
-st.markdown(
-    f"""
-    <style>
-        div[data-testid="stVerticalBlock"] * {{ font-size: {selected_font_size}; }}
-        section[data-testid="stSidebar"] * {{ font-size: {selected_font_size}; }}
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-# --- 定数・メッセージ ---
+# --- 定数・文言 ---
 WELCOME_MESSAGES = [
     "ようこそ！LRADチャットボットへ。",
     "あなたの疑問にお応えします。",
     "LRAD専用チャットボットです。"
-] if lang == "日本語" else [
+] if is_jp else [
     "Welcome to the LRAD Chat Assistant.",
     "Your questions, our answers."
 ]
 
-LOGIN_TITLE = "LRADチャットへログイン" if lang == "日本語" else "Login to LRAD Chat"
-LOGIN_PASSWORD_LABEL = "パスワードを入力してください" if lang == "日本語" else "Enter Password"
-LOGIN_ERROR_MSG = "パスワードが間違っています。" if lang == "日本語" else "Incorrect password."
-WELCOME_CAPTION = (
-    "※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。"
-    if lang == "日本語"
-    else "This chatbot responds based on FAQ and AI, but may not answer all questions accurately."
-)
-CHAT_INPUT_PLACEHOLDER = "質問をどうぞ..." if lang == "日本語" else "Ask your question..."
+LOGIN_TITLE = "LRADチャットへログイン" if is_jp else "Login to LRAD Chat"
+LOGIN_PASSWORD_LABEL = "パスワードを入力してください" if is_jp else "Enter password"
+LOGIN_ERROR_MSG = "パスワードが間違っています。" if is_jp else "Incorrect password."
+WELCOME_CAPTION = "※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。" if is_jp else "This chatbot responds based on FAQ and AI, but may not answer all questions accurately."
+CHAT_INPUT_PLACEHOLDER = "質問をどうぞ..." if is_jp else "Ask your question..."
 CORRECT_PASSWORD = "mypassword"
 
-# --- セッションステート初期化 ---
-for key in ["authenticated", "show_welcome", "welcome_message", "welcome_start_time", "fade_out", "chat_log"]:
-    if key not in st.session_state:
-        if key == "chat_log":
-            st.session_state[key] = []
-        else:
-            st.session_state[key] = False if key in ["authenticated", "show_welcome", "fade_out"] else ""
+# --- フォントサイズ（サイドバー選択） ---
+font_size_map = {"小": "14px", "中": "18px", "大": "24px"} if is_jp else {"Small": "14px", "Medium": "18px", "Large": "24px"}
+font_size_options = list(font_size_map.keys())
+font_size = st.sidebar.selectbox("文字サイズを選択" if is_jp else "Select Font Size", font_size_options, index=1)
+selected_font_size = font_size_map[font_size]
 
-# --- パスワード認証フォーム ---
+st.markdown(f"""
+<style>
+div[data-testid="stVerticalBlock"] * {{
+    font-size: {selected_font_size};
+}}
+section[data-testid="stSidebar"] * {{
+    font-size: {selected_font_size};
+}}
+</style>
+""", unsafe_allow_html=True)
+
+# --- セッションステート初期化 ---
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+if "show_welcome" not in st.session_state:
+    st.session_state.show_welcome = False
+if "welcome_message" not in st.session_state:
+    st.session_state.welcome_message = ""
+if "fade_out" not in st.session_state:
+    st.session_state.fade_out = False
+if "chat_log" not in st.session_state:
+    st.session_state.chat_log = []
+
+# --- ログイン処理 ---
 def password_check():
     if not st.session_state.authenticated:
         with st.form("login_form"):
             st.title(LOGIN_TITLE)
-            password = st.text_input(LOGIN_PASSWORD_LABEL, type="password", placeholder="******")
-            submitted = st.form_submit_button("ログイン" if lang == "日本語" else "Login")
+            st.write("LRADチャットボットにログインしてください。" if is_jp else "Please login to use the LRAD Chat Assistant.")
+            password = st.text_input(LOGIN_PASSWORD_LABEL, type="password", key="pw_input")
+            submitted = st.form_submit_button("ログイン" if is_jp else "Login")
             if submitted:
                 if password == CORRECT_PASSWORD:
                     st.session_state.authenticated = True
                     st.session_state.show_welcome = True
                     st.session_state.welcome_message = random.choice(WELCOME_MESSAGES)
-                    st.session_state.welcome_start_time = time.time()
+                    st.session_state.fade_out = False
                     st.experimental_rerun()
                 else:
                     st.error(LOGIN_ERROR_MSG)
         st.stop()
 
-# --- welcome画面表示処理 ---
-def show_welcome():
-    elapsed = time.time() - st.session_state.welcome_start_time
-    WELCOME_DISPLAY_SECONDS = 3
-    FADEOUT_SECONDS = 1.5
+password_check()
 
-    if elapsed < WELCOME_DISPLAY_SECONDS:
-        opacity = 1
-    elif elapsed < WELCOME_DISPLAY_SECONDS + FADEOUT_SECONDS:
-        opacity = 1 - (elapsed - WELCOME_DISPLAY_SECONDS) / FADEOUT_SECONDS
-    else:
-        st.session_state.show_welcome = False
-        st.experimental_rerun()
-        return
-
-    st.markdown(
-        f"""
+# --- ウェルカム画面表示 ---
+def show_welcome_screen():
+    st.markdown(f"""
     <style>
     .fullscreen {{
         position: fixed;
@@ -110,23 +100,42 @@ def show_welcome():
         display: flex;
         justify-content: center;
         align-items: center;
-        font-size: 64px;
+        font-size: 10vw;
         font-weight: bold;
         text-align: center;
         padding: 0 20px;
-        word-break: break-word;
-        opacity: {opacity};
-        transition: opacity 0.3s linear;
+        animation: fadein 1.5s forwards;
         z-index: 9999;
+        word-break: break-word;
+    }}
+    .fadeout {{
+        animation: fadeout 1.5s forwards;
+    }}
+    @keyframes fadein {{
+        from {{opacity: 0;}}
+        to {{opacity: 1;}}
+    }}
+    @keyframes fadeout {{
+        from {{opacity: 1;}}
+        to {{opacity: 0;}}
     }}
     </style>
-    <div class="fullscreen">
+    <div class="fullscreen {'fadeout' if st.session_state.fade_out else ''}">
         {st.session_state.welcome_message}
     </div>
-    """,
-        unsafe_allow_html=True,
-    )
-    st.stop()
+    """, unsafe_allow_html=True)
+
+if st.session_state.show_welcome:
+    show_welcome_screen()
+    if not st.session_state.fade_out:
+        time.sleep(2)
+        st.session_state.fade_out = True
+        st.experimental_rerun()
+    else:
+        time.sleep(1)
+        st.session_state.show_welcome = False
+        st.experimental_rerun()
+
 
 #######################################################################################
 try:
