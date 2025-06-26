@@ -68,22 +68,20 @@ if "chat_log" not in st.session_state:
 
 # --- ログイン処理 ---
 def password_check():
-    if not st.session_state.authenticated:
+    if not st.session_state["authenticated"]:
         with st.form("login_form"):
-            st.title(LOGIN_TITLE)
-            col1, col2 = st.columns([8, 1])  # 8:1の幅割合でカラム作成
-
-            with col1:
-                password = st.text_input("", type="password", placeholder=LOGIN_PASSWORD_LABEL)
-            with col2:
-                # アイコン付きのボタンを作る
-                submitted = st.form_submit_button("🔒")  # 鍵アイコンの絵文字を使う
+            st.markdown('<div class="login-container">', unsafe_allow_html=True)
+            st.markdown(f"<h1>{LOGIN_TITLE}</h1>", unsafe_allow_html=True)
+            password = st.text_input("", type="password", placeholder=LOGIN_PASSWORD_LABEL)
+            st.markdown('<div class="login-button">', unsafe_allow_html=True)
+            submitted = st.form_submit_button("ログイン")
+            st.markdown('</div></div>', unsafe_allow_html=True)
             if submitted:
                 if password == CORRECT_PASSWORD:
-                    st.session_state.authenticated = True
-                    st.session_state.show_welcome = True
-                    st.session_state.welcome_message = random.choice(WELCOME_MESSAGES)
-                    st.session_state.fade_out = False
+                    st.session_state["authenticated"] = True
+                    st.session_state["show_welcome"] = True
+                    st.session_state["welcome_message"] = random.choice(WELCOME_MESSAGES)
+                    st.session_state["fade_out"] = False
                     st.experimental_rerun()
                 else:
                     st.error(LOGIN_ERROR_MSG)
