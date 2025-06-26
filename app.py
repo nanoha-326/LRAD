@@ -24,25 +24,18 @@ font_size = st.sidebar.selectbox(font_size_label, font_size_options, index=1)
 font_size_map_jp = {"小": "14px", "中": "18px", "大": "24px"}
 font_size_map_en = {"Small": "14px", "Medium": "18px", "Large": "24px"}
 selected_font_size = font_size_map_jp[font_size] if lang == "日本語" else font_size_map_en[font_size]
-
 st.markdown(
     f"""
     <style>
-        div[data-testid="stVerticalBlock"] * {{
-            font-size: {selected_font_size};
-        }}
-        section[data-testid="stSidebar"] * {{
-            font-size: {selected_font_size};
-        }}
+        div[data-testid="stVerticalBlock"] * {{ font-size: {selected_font_size}; }}
+        section[data-testid="stSidebar"] * {{ font-size: {selected_font_size}; }}
         .login-container {{
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
             display: flex;
             flex-direction: column;
             align-items: center;
-            text-align: left;
+            justify-content: center;
+            height: 90vh;
+            text-align: center;
         }}
         .login-button button {{
             background-color: #333 !important;
@@ -57,12 +50,13 @@ st.markdown(
             font-size: 1.2em;
             padding: 0.5em;
             width: 300px;
+            text-align: left;
         }}
+        input[type="password"]::-ms-reveal {{ display: none; }}
     </style>
     """,
     unsafe_allow_html=True
 )
-
 
 WELCOME_MESSAGES = [
     "ようこそ！LRADチャットボットへ。",
@@ -89,13 +83,12 @@ if "welcome_message" not in st.session_state:
 if "fade_out" not in st.session_state:
     st.session_state["fade_out"] = False
 
-
 def password_check():
     if not st.session_state["authenticated"]:
         st.markdown('<div class="login-container">', unsafe_allow_html=True)
         st.markdown(f"<h1>{LOGIN_TITLE}</h1>", unsafe_allow_html=True)
         with st.form("login_form"):
-            password = st.text_input("", type="password", placeholder=LOGIN_PASSWORD_LABEL)
+            password = st.text_input(label="", type="password", placeholder=LOGIN_PASSWORD_LABEL, label_visibility="collapsed")
             submitted = st.form_submit_button("ログイン")
             if submitted:
                 if password == CORRECT_PASSWORD:
