@@ -43,6 +43,13 @@ st.markdown(f"""
 </style>
 """, unsafe_allow_html=True)
 
+st.markdown(f"""
+<div class="app-title" style="display:flex; align-items:center;">
+    <img src="data:image/png;base64,{image_base64}" width="80" style="margin-right:10px;">
+    <h1 style="font-size:48px; margin:0;">{title_text}</h1>
+</div>
+""", unsafe_allow_html=True)
+
 # --- 定数・メッセージ ---
 WELCOME_MESSAGES = [
     "ようこそ！LRADチャットボットへ。",
