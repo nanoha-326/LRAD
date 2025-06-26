@@ -2,18 +2,15 @@ import streamlit as st
 from openai import OpenAI
 import pandas as pd
 import numpy as np
-import re, os, json, unicodedata, base64
+import json, os, time, base64, traceback, random
 from datetime import datetime, timezone, timedelta
+from sklearn.metrics.pairwise import cosine_similarity
 import gspread
 from google.oauth2.service_account import Credentials
-from sklearn.metrics.pairwise import cosine_similarity
-import traceback
-import random
-import time
 
+# --- 設定 ---
 st.set_page_config(page_title="LRADチャット", layout="centered")
 
-# Step 1: 言語設定とサイドバーUI
 lang = st.sidebar.selectbox("言語を選択 / Select Language", ["日本語", "English"], index=0)
 
 sidebar_title = "⚙️ 設定" if lang == "日本語" else "⚙️ Settings"
@@ -21,20 +18,14 @@ font_size_label = "文字サイズを選択" if lang == "日本語" else "Select
 font_size_options = ["小", "中", "大"] if lang == "日本語" else ["Small", "Medium", "Large"]
 st.sidebar.title(sidebar_title)
 font_size = st.sidebar.selectbox(font_size_label, font_size_options, index=1)
-
 font_size_map_jp = {"小": "14px", "中": "18px", "大": "24px"}
 font_size_map_en = {"Small": "14px", "Medium": "18px", "Large": "24px"}
 selected_font_size = font_size_map_jp[font_size] if lang == "日本語" else font_size_map_en[font_size]
-
-st.markdown(
-    f"""
-    <style>
-        div[data-testid="stVerticalBlock"] * {{ font-size: {selected_font_size}; }}
-        section[data-testid="stSidebar"] * {{ font-size: {selected_font_size}; }}
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+st.markdown(f"""
+<style>
+    div[data-testid="stVerticalBlock"] * {{ font-size: {selected_font_size}; }}
+    section[data-testid="stSidebar"] * {{ font-size: {selected_font_size}; }}
+</style>""", unsafe_allow_html=True)
 
 WELCOME_MESSAGES = [
     "ようこそ！LRADチャットボットへ。",
@@ -48,81 +39,94 @@ WELCOME_MESSAGES = [
 LOGIN_TITLE = "ログイン" if lang == "日本語" else "Login"
 LOGIN_PASSWORD_LABEL = "パスワードを入力" if lang == "日本語" else "Enter Password"
 LOGIN_ERROR_MSG = "パスワードが間違っています" if lang == "日本語" else "Incorrect password"
+LOGIN_SITE_INFO = (
+    "LRADサポートチャットへログインしてください。"
+    if lang == "日本語" else
+    "Please login to access the LRAD Support Chat."
+)
 WELCOME_CAPTION = "※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。" if lang == "日本語" else "This chatbot responds based on FAQ and AI, but may not answer all questions accurately."
 CHAT_INPUT_PLACEHOLDER = "質問をどうぞ..." if lang == "日本語" else "Ask your question..."
 CORRECT_PASSWORD = "mypassword"
 
-if "authenticated" not in st.session_state:
-    st.session_state["authenticated"] = False
-if "show_welcome" not in st.session_state:
-    st.session_state["show_welcome"] = False
-if "welcome_message" not in st.session_state:
-    st.session_state["welcome_message"] = ""
-if "fade_out" not in st.session_state:
-    st.session_state["fade_out"] = False
-if "chat_history" not in st.session_state:
-    st.session_state["chat_history"] = []
+# --- セッション状態初期化 ---
+for key, default in {
+    "authenticated": False,
+    "show_welcome": False,
+    "welcome_message": "",
+    "fade_out": False,
+    "chat_log": []
+}.items():
+    if key not in st.session_state:
+        st.session_state[key] = default
 
+# --- パスワード認証 ---
 def password_check():
-    if not st.session_state["authenticated"]:
+    if not st.session_state.authenticated:
         with st.form("login_form"):
             st.title(LOGIN_TITLE)
+            st.write(f"### {LOGIN_SITE_INFO}")  # 追加：ログイン説明をタイトルの下に表示
             password = st.text_input(LOGIN_PASSWORD_LABEL, type="password")
             submitted = st.form_submit_button(LOGIN_TITLE)
             if submitted:
                 if password == CORRECT_PASSWORD:
-                    st.session_state["authenticated"] = True
-                    st.session_state["show_welcome"] = True
-                    st.session_state["welcome_message"] = random.choice(WELCOME_MESSAGES)
-                    st.session_state["fade_out"] = False
+                    st.session_state.authenticated = True
+                    st.session_state.show_welcome = True
+                    st.session_state.welcome_message = random.choice(WELCOME_MESSAGES)
+                    st.session_state.fade_out = False
+                    # ここで一旦画面再読み込み。show_welcomeを表示させるため。
                     st.experimental_rerun()
                 else:
                     st.error(LOGIN_ERROR_MSG)
         st.stop()
-
 password_check()
 
+# --- ウェルカムメッセージ表示 ---
 def show_welcome_screen():
-    st.markdown(
-        f"""
-        <style>
-        .fullscreen {{
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 56px;
-            font-weight: bold;
-            animation: fadein 1.5s forwards;
-            z-index: 9999;
-            text-align: center;
-            padding: 0 20px;
-            word-break: break-word;
-        }}
-        .fadeout {{ animation: fadeout 1.5s forwards; }}
-        @keyframes fadein {{ from {{ opacity: 0; }} to {{ opacity: 1; }} }}
-        @keyframes fadeout {{ from {{ opacity: 1; }} to {{ opacity: 0; }} }}
-        </style>
-        <div class="fullscreen {'fadeout' if st.session_state['fade_out'] else ''}">
-            {st.session_state['welcome_message']}
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    st.markdown(f"""
+    <style>
+    .fullscreen {{
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background-color: white;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 64px;
+        font-weight: bold;
+        animation: fadein 1.5s forwards;
+        z-index: 9999;
+        text-align: center;
+        padding: 0 20px;
+        word-break: break-word;
+    }}
+    .fadeout {{ animation: fadeout 1.5s forwards; }}
+    @keyframes fadein {{ from {{ opacity: 0; }} to {{ opacity: 1; }} }}
+    @keyframes fadeout {{ from {{ opacity: 1; }} to {{ opacity: 0; }} }}
+    </style>
+    <div class="fullscreen {'fadeout' if st.session_state.fade_out else ''}">
+        {st.session_state.welcome_message}
+    </div>""", unsafe_allow_html=True)
 
-if st.session_state["show_welcome"]:
-    show_welcome_screen()
-    if not st.session_state["fade_out"]:
-        time.sleep(2)
-        st.session_state["fade_out"] = True
+if st.session_state.show_welcome:
+    # 表示制御のためにstart_timeをセッションに持たせる（1回だけセット）
+    if "welcome_start_time" not in st.session_state:
+        st.session_state.welcome_start_time = time.time()
+        show_welcome_screen()
         st.experimental_rerun()
     else:
-        time.sleep(1)
-        st.session_state["show_welcome"] = False
-        st.experimental_rerun()
-
+        elapsed = time.time() - st.session_state.welcome_start_time
+        show_welcome_screen()
+        if elapsed > 3.0 and not st.session_state.fade_out:
+            st.session_state.fade_out = True
+            st.experimental_rerun()
+        elif elapsed > 4.5 and st.session_state.fade_out:
+            # 表示終了
+            st.session_state.show_welcome = False
+            # 時間関係のキーはクリア
+            del st.session_state["welcome_start_time"]
+            st.experimental_rerun()
+        st.stop()
+#######################################################################################
 try:
     client = OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
 except Exception as e:
