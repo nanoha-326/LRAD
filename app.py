@@ -106,10 +106,10 @@ if "fade_out" not in st.session_state:
 
 def password_check():
     if not st.session_state["authenticated"]:
-        st.title("LRADチャットへログイン")
+        st.title("LOGIN_TITLE")
         with st.form("login_form"):
-            password = st.text_input("", type="password", placeholder="パスワードを入力してください", label_visibility="collapsed")
-            submitted = st.form_submit_button("ログイン")
+            password = st.text_input("", type="password", placeholder="LOGIN_PASSWORD_LABEL")
+            submitted = st.form_submit_button("LOGIN")
             if submitted:
                 if password == "mypassword":
                     st.session_state["authenticated"] = True
