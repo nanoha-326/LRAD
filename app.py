@@ -2,18 +2,15 @@ import streamlit as st
 from openai import OpenAI
 import pandas as pd
 import numpy as np
-import base64
-import time
-import random
-import traceback
+import re, os, json, unicodedata, base64
 from datetime import datetime, timezone, timedelta
-from sklearn.metrics.pairwise import cosine_similarity
-import json
-import os
 import gspread
 from google.oauth2.service_account import Credentials
+from sklearn.metrics.pairwise import cosine_similarity
+import traceback
+import random
+import time
 
-# --- ページ設定 ---
 st.set_page_config(page_title="LRADチャット", layout="centered")
 
 lang = st.sidebar.selectbox("言語を選択 / Select Language", ["日本語", "English"], index=0)
@@ -38,7 +35,7 @@ st.markdown(
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 80vh;
+            height: 90vh;
             text-align: center;
         }}
         .login-button button {{
@@ -48,6 +45,7 @@ st.markdown(
             padding: 0.5em 2em;
             font-size: 1.2em;
             border-radius: 4px;
+            margin-top: 1em;
         }}
         input[type="password"] {{
             font-size: 1.2em;
@@ -69,7 +67,7 @@ WELCOME_MESSAGES = [
     "Your questions, our answers."
 ]
 
-LOGIN_TITLE = "ログイン" if lang == "日本語" else "Login"
+LOGIN_TITLE = "LRADチャットへログイン" if lang == "日本語" else "Login to LRAD Chat"
 LOGIN_PASSWORD_LABEL = "パスワードを入力してください" if lang == "日本語" else "Please enter password"
 LOGIN_ERROR_MSG = "パスワードが間違っています" if lang == "日本語" else "Incorrect password"
 WELCOME_CAPTION = "※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。" if lang == "日本語" else "This chatbot responds based on FAQ and AI, but may not answer all questions accurately."
@@ -85,15 +83,14 @@ if "welcome_message" not in st.session_state:
 if "fade_out" not in st.session_state:
     st.session_state["fade_out"] = False
 
+
 def password_check():
     if not st.session_state["authenticated"]:
+        st.markdown('<div class="login-container">', unsafe_allow_html=True)
+        st.markdown(f"<h1>{LOGIN_TITLE}</h1>", unsafe_allow_html=True)
         with st.form("login_form"):
-            st.markdown('<div class="login-container">', unsafe_allow_html=True)
-            st.markdown(f"<h1>{LOGIN_TITLE}</h1>", unsafe_allow_html=True)
             password = st.text_input("", type="password", placeholder=LOGIN_PASSWORD_LABEL)
-            st.markdown('<div class="login-button">', unsafe_allow_html=True)
             submitted = st.form_submit_button("ログイン")
-            st.markdown('</div></div>', unsafe_allow_html=True)
             if submitted:
                 if password == CORRECT_PASSWORD:
                     st.session_state["authenticated"] = True
@@ -103,6 +100,7 @@ def password_check():
                     st.experimental_rerun()
                 else:
                     st.error(LOGIN_ERROR_MSG)
+        st.markdown('</div>', unsafe_allow_html=True)
         st.stop()
 
 password_check()
