@@ -1,4 +1,5 @@
 # app.py
+
 import streamlit as st
 from openai import OpenAI
 import pandas as pd
@@ -14,125 +15,135 @@ import time
 
 st.set_page_config(page_title="LRADチャット", layout="centered")
 
-# ------------------------ 言語・フォント設定 ------------------------
-lang = st.sidebar.selectbox("言語を選択 / Select Language", ["日本語", "English"], index=0)
-font_size_label = "文字サイズを選択" if lang == "日本語" else "Select Font Size"
-font_size_options = ["小", "中", "大"] if lang == "日本語" else ["Small", "Medium", "Large"]
-font_size_map = {"小": "14px", "中": "18px", "大": "24px", "Small": "14px", "Medium": "18px", "Large": "24px"}
-font_size = st.sidebar.selectbox(font_size_label, font_size_options, index=1)
+# 言語設定
+lang = st.sidebar.selectbox("言語 / Language", ["日本語", "English"], index=0)
+font_size_label = "文字サイズ" if lang == "日本語" else "Font Size"
+font_size = st.sidebar.selectbox(font_size_label, ["小", "中", "大"] if lang == "日本語" else ["Small", "Medium", "Large"], index=1)
+
+font_map_jp = {"小": "14px", "中": "18px", "大": "24px"}
+font_map_en = {"Small": "14px", "Medium": "18px", "Large": "24px"}
+font_css = font_map_jp[font_size] if lang == "日本語" else font_map_en[font_size]
+
 st.markdown(f"""
-    <style>
-        div[data-testid="stVerticalBlock"] * {{ font-size: {font_size_map[font_size]}; }}
-        section[data-testid="stSidebar"] * {{ font-size: {font_size_map[font_size]}; }}
-    </style>
+<style>
+div[data-testid="stVerticalBlock"] * {{ font-size: {font_css}; }}
+section[data-testid="stSidebar"] * {{ font-size: {font_css}; }}
+</style>
 """, unsafe_allow_html=True)
 
-# ------------------------ セッション初期化 ------------------------
+# セッション状態
 if "authenticated" not in st.session_state:
-    st.session_state["authenticated"] = False
+    st.session_state.authenticated = False
 if "show_welcome" not in st.session_state:
-    st.session_state["show_welcome"] = False
-if "fade_out" not in st.session_state:
-    st.session_state["fade_out"] = False
+    st.session_state.show_welcome = False
 if "welcome_message" not in st.session_state:
-    st.session_state["welcome_message"] = ""
+    st.session_state.welcome_message = ""
+if "fade_out" not in st.session_state:
+    st.session_state.fade_out = False
 if "chat_log" not in st.session_state:
     st.session_state.chat_log = []
 
-WELCOME_MESSAGES = [
-    "ようこそ！LRADチャットボットへ。",
-    "あなたの疑問にお応えします。",
-    "LRAD専用チャットボットです。",
-] if lang == "日本語" else [
-    "Welcome to the LRAD Chat Assistant.",
-    "Your questions, our answers."
-]
+WELCOME_MESSAGES_JP = ["ようこそ。LRADチャットボットへ", "質問があればお忘れなく"]
+WELCOME_MESSAGES_EN = ["Welcome to LRAD Chatbot", "Ask anything about LRAD"]
+WELCOME_MESSAGES = WELCOME_MESSAGES_JP if lang == "日本語" else WELCOME_MESSAGES_EN
 
-# ------------------------ 認証 ------------------------
+# パスワード確認
 def password_check():
-    if not st.session_state["authenticated"]:
+    CORRECT_PASSWORD = "mypassword"
+    if not st.session_state.authenticated:
         with st.form("login_form"):
-            st.title("ログイン" if lang == "日本語" else "Login")
-            password = st.text_input("パスワードを入力" if lang == "日本語" else "Enter Password", type="password")
-            submitted = st.form_submit_button("ログイン" if lang == "日本語" else "Login")
-            if submitted:
-                if password == "mypassword":
-                    st.session_state["authenticated"] = True
-                    st.session_state["show_welcome"] = True
-                    st.session_state["fade_out"] = False
-                    st.session_state["welcome_message"] = random.choice(WELCOME_MESSAGES)
+            st.title("Login" if lang != "日本語" else "ログイン")
+            password = st.text_input("Password" if lang != "日本語" else "パスワード", type="password")
+            if st.form_submit_button("Login"):
+                if password == CORRECT_PASSWORD:
+                    st.session_state.authenticated = True
+                    st.session_state.show_welcome = True
+                    st.session_state.welcome_message = random.choice(WELCOME_MESSAGES)
+                    st.session_state.fade_out = False
                     st.experimental_rerun()
                 else:
-                    st.error("パスワードが間違っています" if lang == "日本語" else "Incorrect password")
+                    st.error("Incorrect password" if lang != "日本語" else "パスワードが違います")
         st.stop()
 
 password_check()
 
-# ------------------------ Welcome画面 ------------------------
-def show_welcome_screen():
+# ウェルカム表示
+def show_welcome():
     st.markdown(f"""
     <style>
     .fullscreen {{
         position: fixed; top: 0; left: 0; right: 0; bottom: 0;
         background-color: white; display: flex;
         justify-content: center; align-items: center;
-        font-size: 60px; font-weight: bold;
-        animation: fadein 1.2s forwards; z-index: 9999;
+        font-size: 48px; font-weight: bold; z-index: 9999;
+        animation: fadein 1s, fadeout 1s 2s forwards;
     }}
-    .fadeout {{ animation: fadeout 1.5s forwards; }}
     @keyframes fadein {{ from {{ opacity: 0; }} to {{ opacity: 1; }} }}
     @keyframes fadeout {{ from {{ opacity: 1; }} to {{ opacity: 0; }} }}
     </style>
-    <div class="fullscreen {'fadeout' if st.session_state['fade_out'] else ''}">
-        {st.session_state['welcome_message']}
-    </div>
+    <div class="fullscreen">{st.session_state.welcome_message}</div>
     """, unsafe_allow_html=True)
 
-if st.session_state["show_welcome"]:
-    show_welcome_screen()
-    if not st.session_state["fade_out"]:
-        time.sleep(2)
-        st.session_state["fade_out"] = True
-        st.experimental_rerun()
-    else:
-        time.sleep(1.5)
-        st.session_state["show_welcome"] = False
-        st.experimental_rerun()
+if st.session_state.show_welcome:
+    show_welcome()
+    time.sleep(3)
+    st.session_state.show_welcome = False
+    st.experimental_rerun()
 
-# ------------------------ タイトル ------------------------
-def get_base64_image(path):
-    try:
-        with open(path, "rb") as f:
-            return base64.b64encode(f.read()).decode()
-    except:
-        return ""
-
-image_base64 = get_base64_image("LRADimg.png")
-
-st.markdown(f"""
-<div style="display:flex; align-items:center;">
-    <img src="data:image/png;base64,{image_base64}" width="80" style="margin-right:10px;">
-    <h1 style="margin:0; font-size:32px;">
-        {'LRADサポートチャット' if lang == '日本語' else 'LRAD Support Chat'}
-    </h1>
-</div>
-""", unsafe_allow_html=True)
-
-st.caption("※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。" if lang == "日本語" else "This chatbot responds based on FAQ and AI, but may not answer all questions accurately.")
-
-# ------------------------ OpenAIクライアント ------------------------
+# OpenAI client
 try:
     client = OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
-except Exception:
-    st.error("OpenAI APIキーの取得に失敗しました")
+except Exception as e:
+    st.error("OpenAI API key error.")
     st.stop()
 
-# ------------------------ FAQ読み込み ------------------------
+# FAQ 読み込み
 @st.cache_data
 def load_faq(path="faq_all.csv"):
     df = pd.read_csv(path)
     df["embedding"] = df["質問"].apply(lambda x: get_embedding(str(x)))
     return df
+
+@st.cache_data
+def load_common_faq():
+    if lang == "日本語":
+        return pd.read_csv("faq_common_jp.csv")
+    else:
+        return pd.read_csv("faq_common_en.csv")
+
+faq_df = load_faq()
+common_faq_df = load_common_faq()
+
+# タイトル表示
+img_path = "LRADimg.png"
+def get_base64_image(path):
+    with open(path, "rb") as f:
+        return base64.b64encode(f.read()).decode()
+img_base64 = get_base64_image(img_path)
+title = "LRADサポートチャット" if lang == "日本語" else "LRAD Support Chat"
+st.markdown(f"""
+<div style="display:flex;align-items:center;">
+    <img src="data:image/png;base64,{img_base64}" width="80" style="margin-right:10px;">
+    <h1 style="margin:0;font-size:32px;">{title}</h1>
+</div>
+""", unsafe_allow_html=True)
+
+# よくある質問
+with st.expander("💡 よくある質問" if lang == "日本語" else "💡 FAQ"):
+    keyword = st.text_input("🔍 キーワード検索" if lang == "日本語" else "🔍 Search")
+    df = common_faq_df
+    if keyword:
+        col_q = "質問" if lang == "日本語" else "question"
+        col_a = "回答" if lang == "日本語" else "answer"
+        df = df[df[col_q].str.contains(keyword, na=False) | df[col_a].str.contains(keyword, na=False)]
+    for _, row in df.iterrows():
+        st.markdown(f"**Q. {row[0]}**")
+        st.markdown(f"A. {row[1]}")
+        st.markdown("---")
+
+# 基本処理
+CHAT_PLACEHOLDER = "質問をどうぞ..." if lang == "日本語" else "Ask your question..."
+
 
 def get_embedding(text):
     text = text.replace("\n", " ")
@@ -142,31 +153,29 @@ def get_embedding(text):
     except:
         return np.zeros(1536)
 
-faq_df = load_faq()
 
-# ------------------------ 類似検索＆応答 ------------------------
-def find_top_similar(q, df, k=1):
+def find_similar(q, df):
     q_vec = get_embedding(q)
-    faq_vecs = np.stack(df["embedding"].to_numpy())
-    sims = cosine_similarity([q_vec], faq_vecs)[0]
-    idx = sims.argsort()[::-1][:k][0]
-    return df.iloc[idx]["質問"], df.iloc[idx]["回答"]
+    matrix = np.stack(df.embedding.values)
+    sims = cosine_similarity([q_vec], matrix)[0]
+    idx = sims.argmax()
+    return df.iloc[idx]
 
-def generate_response(user_q, ref_q, ref_a):
-    sys_prompt = f"""あなたはLRADの専門家です。\n
-FAQ質問: {ref_q}\nFAQ回答: {ref_a}\n
-この情報をもとに200文字以内でユーザーの質問に答えてください。"""
-    messages = [{"role": "system", "content": sys_prompt}, {"role": "user", "content": user_q}]
-    res = client.chat.completions.create(model="gpt-3.5-turbo", messages=messages, temperature=0.3)
-    return res.choices[0].message.content.strip()
 
-# ------------------------ チャットUI ------------------------
-for q, a in st.session_state.chat_log:
-    st.chat_message("user").write(q)
-    if a:
-        st.chat_message("assistant").write(a)
+def generate_response(q, ref):
+    system = "You are LRAD expert. Answer user in 200 chars using below FAQ." if lang != "日本語" else "あなたはLRADの専門家です。以下のFAQを参考に200文字以内で簡潔に回答してください。"
+    messages = [
+        {"role": "system", "content": f"{system}\nFAQ: {ref['質問']}\nA: {ref['回答']}"},
+        {"role": "user", "content": q}
+    ]
+    try:
+        res = client.chat.completions.create(model="gpt-3.5-turbo", messages=messages)
+        return res.choices[0].message.content.strip()
+    except:
+        return "AIが回答を生成できませんでした"
 
-user_q = st.chat_input("質問をどうぞ..." if lang == "日本語" else "Ask your question...")
+
+user_q = st.chat_input(CHAT_PLACEHOLDER)
 
 if user_q:
     st.session_state.chat_log.append((user_q, None))
@@ -174,11 +183,12 @@ if user_q:
 
 if st.session_state.chat_log and st.session_state.chat_log[-1][1] is None:
     last_q = st.session_state.chat_log[-1][0]
-    ref_q, ref_a = find_top_similar(last_q, faq_df)
-    if ref_q:
-        with st.spinner("回答生成中..."):
-            ans = generate_response(last_q, ref_q, ref_a)
-    else:
-        ans = "申し訳ありません、関連FAQが見つかりませんでした。"
-    st.session_state.chat_log[-1] = (last_q, ans)
+    ref = find_similar(last_q, faq_df)
+    answer = generate_response(last_q, ref)
+    st.session_state.chat_log[-1] = (last_q, answer)
     st.experimental_rerun()
+
+for q, a in st.session_state.chat_log:
+    st.chat_message("user").write(q)
+    if a:
+        st.chat_message("assistant").write(a)
