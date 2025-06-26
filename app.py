@@ -35,20 +35,27 @@ st.markdown(f"""
     section[data-testid="stSidebar"] * {{
         font-size: {selected_font_size} !important;
     }}
-    /* タイトルのフォントサイズだけは別に大きくする */
-    .app-title h1 {{
-        font-size: 48px !important;
-        margin: 0;
-    }}
 </style>
 """, unsafe_allow_html=True)
 
+# --- ロゴ画像読み込み ---
+image_base64 = ""
+try:
+    with open("LRADimg.png", "rb") as img_file:
+        image_base64 = base64.b64encode(img_file.read()).decode()
+except Exception:
+    pass
+
+# --- タイトル表示（h1にインラインスタイルでフォントサイズ指定を追加）---
+title_text = "LRADサポートチャット" if lang == "日本語" else "LRAD Support Chat"
 st.markdown(f"""
 <div class="app-title" style="display:flex; align-items:center;">
     <img src="data:image/png;base64,{image_base64}" width="80" style="margin-right:10px;">
     <h1 style="font-size:48px; margin:0;">{title_text}</h1>
 </div>
 """, unsafe_allow_html=True)
+
+# 以下略（元のコードのまま）
 
 # --- 定数・メッセージ ---
 WELCOME_MESSAGES = [
