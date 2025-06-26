@@ -13,6 +13,7 @@ import time
 
 st.set_page_config(page_title="LRADチャット", layout="centered")
 
+# Step 1: 言語設定とサイドバーUI
 lang = st.sidebar.selectbox("言語を選択 / Select Language", ["日本語", "English"], index=0)
 
 sidebar_title = "⚙️ 設定" if lang == "日本語" else "⚙️ Settings"
@@ -25,49 +26,15 @@ font_size_map_jp = {"小": "14px", "中": "18px", "大": "24px"}
 font_size_map_en = {"Small": "14px", "Medium": "18px", "Large": "24px"}
 selected_font_size = font_size_map_jp[font_size] if lang == "日本語" else font_size_map_en[font_size]
 
-st.markdown(f"""
-<style>
-    div[data-testid="stVerticalBlock"] * {{ font-size: {selected_font_size}; }}
-    section[data-testid="stSidebar"] * {{ font-size: {selected_font_size}; }}
-    .login-outer {{
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        width: 100vw;
-        position: fixed;
-        top: 0;
-        left: 0;
-        z-index: 9999;
-        background-color: white;
-    }}
-    .login-container {{
-        text-align: center;
-        max-width: 400px;
-        width: 100%;
-        padding: 2em;
-    }}
-    .login-title {{
-        font-size: 2em;
-        margin-bottom: 1em;
-    }}
-    .login-button button {{
-        background-color: #333 !important;
-        color: white !important;
-        border: none;
-        padding: 0.5em 2em;
-        font-size: 1.2em;
-        border-radius: 4px;
-        margin-top: 1em;
-    }}
-    input[type="password"] {{
-        font-size: 1.2em;
-        padding: 0.5em;
-        width: 100%;
-        max-width: 300px;
-    }}
-</style>
-""", unsafe_allow_html=True)
+st.markdown(
+    f"""
+    <style>
+        div[data-testid="stVerticalBlock"] * {{ font-size: {selected_font_size}; }}
+        section[data-testid="stSidebar"] * {{ font-size: {selected_font_size}; }}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 WELCOME_MESSAGES = [
     "ようこそ！LRADチャットボットへ。",
@@ -78,8 +45,8 @@ WELCOME_MESSAGES = [
     "Your questions, our answers."
 ]
 
-LOGIN_TITLE = "LRADチャットへログイン" if lang == "日本語" else "Login to LRAD Chat"
-LOGIN_PASSWORD_LABEL = "パスワードを入力してください" if lang == "日本語" else "Please enter password"
+LOGIN_TITLE = "ログイン" if lang == "日本語" else "Login"
+LOGIN_PASSWORD_LABEL = "パスワードを入力" if lang == "日本語" else "Enter Password"
 LOGIN_ERROR_MSG = "パスワードが間違っています" if lang == "日本語" else "Incorrect password"
 WELCOME_CAPTION = "※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。" if lang == "日本語" else "This chatbot responds based on FAQ and AI, but may not answer all questions accurately."
 CHAT_INPUT_PLACEHOLDER = "質問をどうぞ..." if lang == "日本語" else "Ask your question..."
@@ -93,15 +60,15 @@ if "welcome_message" not in st.session_state:
     st.session_state["welcome_message"] = ""
 if "fade_out" not in st.session_state:
     st.session_state["fade_out"] = False
+if "chat_history" not in st.session_state:
+    st.session_state["chat_history"] = []
 
 def password_check():
     if not st.session_state["authenticated"]:
-        st.markdown('<div class="login-outer">', unsafe_allow_html=True)
-        st.markdown('<div class="login-container">', unsafe_allow_html=True)
-        st.markdown(f'<div class="login-title">{LOGIN_TITLE}</div>', unsafe_allow_html=True)
         with st.form("login_form"):
-            password = st.text_input("", type="password", placeholder=LOGIN_PASSWORD_LABEL, label_visibility="collapsed")
-            submitted = st.form_submit_button("ログイン")
+            st.title(LOGIN_TITLE)
+            password = st.text_input(LOGIN_PASSWORD_LABEL, type="password")
+            submitted = st.form_submit_button(LOGIN_TITLE)
             if submitted:
                 if password == CORRECT_PASSWORD:
                     st.session_state["authenticated"] = True
@@ -111,12 +78,10 @@ def password_check():
                     st.experimental_rerun()
                 else:
                     st.error(LOGIN_ERROR_MSG)
-        st.markdown('</div></div>', unsafe_allow_html=True)
         st.stop()
 
 password_check()
 
-# --- welcome画面の表示 ---
 def show_welcome_screen():
     st.markdown(
         f"""
@@ -177,13 +142,7 @@ def get_embedding(text):
 @st.cache_data
 def load_faq(path="faq_all.csv"):
     df = pd.read_csv(path)
-    # embeddingはすでに含まれていれば読み込み済みの可能性もあるため、存在しなければ計算する
-    if "embedding" not in df.columns:
-        df["embedding"] = df["質問"].apply(lambda x: get_embedding(str(x)))
-    else:
-        # embeddingが文字列の場合は変換
-        if isinstance(df.loc[0, "embedding"], str):
-            df["embedding"] = df["embedding"].apply(lambda x: np.array(json.loads(x)))
+    df["embedding"] = df["質問"].apply(lambda x: get_embedding(str(x)))
     return df
 
 faq_df = load_faq()
@@ -197,9 +156,7 @@ def load_common_faq(path):
         return df
     except Exception as e:
         st.error(f"よくある質問ファイルの読み込みに失敗しました: {e}")
-        # 日本語か英語かでカラムを分ける
-        cols = ["質問", "回答"] if lang == "日本語" else ["question", "answer"]
-        return pd.DataFrame(columns=cols)
+        return pd.DataFrame(columns=["質問", "回答"] if lang == "日本語" else ["question", "answer"])
 
 common_faq_df = load_common_faq(faq_common_path)
 
@@ -212,7 +169,7 @@ except Exception:
 
 title_text = "LRADサポートチャット" if lang == "日本語" else "LRAD Support Chat"
 st.markdown(f"""
-    <div style="display:flex; align-items:center; margin-bottom: 10px;">
+    <div style="display:flex; align-items:center;">
         <img src="data:image/png;base64,{image_base64}" width="80" style="margin-right:10px;">
         <h1 style="margin:0; font-size:32px;">{title_text}</h1>
     </div>
@@ -279,6 +236,7 @@ def append_to_csv(q, a, path="chat_logs.csv"):
     except Exception as e:
         st.warning(f"CSVへの保存に失敗しました: {e}")
 
+
 def append_to_gsheet(q, a):
     try:
         JST = timezone(timedelta(hours=9))
@@ -299,30 +257,15 @@ def append_to_gsheet(q, a):
     except Exception as e:
         st.warning(f"Google Sheetsへの保存に失敗しました: {e}")
 
-def is_valid_input(text):
-    # 入力バリデーション: 3〜300文字、記号率30%未満
-    if not (3 <= len(text) <= 300):
-        return False
-    # 全角半角記号判定（例）
-    total_chars = len(text)
-    symbol_chars = len(re.findall(r"[!-/:-@[-`{-~、。・「」『』（）［］【】]", text))
-    if total_chars == 0:
-        return False
-    symbol_rate = symbol_chars / total_chars
-    if symbol_rate > 0.3:
-        return False
-    return True
 
 if "chat_log" not in st.session_state:
     st.session_state.chat_log = []
 
-# 既存のチャット履歴表示
 for q, a in st.session_state.chat_log:
     st.chat_message("user").write(q)
     if a:
         st.chat_message("assistant").write(a)
 
-# チャット入力欄は画面下部に固定表示される仕様（st.chat_input）
 user_q = st.chat_input(CHAT_INPUT_PLACEHOLDER)
 
 if user_q:
@@ -332,7 +275,6 @@ if user_q:
         st.session_state.chat_log.append((user_q, None))
         st.experimental_rerun()
 
-# 最新の質問に対して回答が未設定なら回答生成
 if st.session_state.chat_log and st.session_state.chat_log[-1][1] is None:
     last_q = st.session_state.chat_log[-1][0]
     ref_q, ref_a = find_top_similar(last_q, faq_df)
