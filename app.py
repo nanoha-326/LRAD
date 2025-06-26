@@ -22,38 +22,19 @@ font_size_options = ["小", "中", "大"] if lang == "日本語" else ["Small", 
 st.sidebar.title(sidebar_title)
 font_size = st.sidebar.selectbox(font_size_label, font_size_options, index=1)
 
-# Step 2: サイズマップと適用サイズ決定
 font_size_map_jp = {"小": "14px", "中": "18px", "大": "24px"}
 font_size_map_en = {"Small": "14px", "Medium": "18px", "Large": "24px"}
 selected_font_size = font_size_map_jp[font_size] if lang == "日本語" else font_size_map_en[font_size]
 
-# Step 3: CSSで反映（この時点で selected_font_size が定義済）
-st.markdown(
-    f"""
+st.markdown(f"""
     <style>
-        div[data-testid="stVerticalBlock"] * {{
-            font-size: {selected_font_size};
-        }}
-        section[data-testid="stSidebar"] * {{
-            font-size: {selected_font_size};
-        }}
+        div[data-testid="stVerticalBlock"] * {{ font-size: {selected_font_size}; }}
+        section[data-testid="stSidebar"] * {{ font-size: {selected_font_size}; }}
     </style>
-    """,
-    unsafe_allow_html=True
-)
+""", unsafe_allow_html=True)
 
-
-WELCOME_MESSAGES_JP = [
-    "ようこそ！LRADチャットボットへ。",
-    "あなたの疑問にお応えします。",
-    "LRAD専用チャットボットです。",
-]
-
-WELCOME_MESSAGES_EN = [
-    "Welcome to the LRAD Chat Assistant.",
-    "Your questions, our answers.",
-]
-
+WELCOME_MESSAGES_JP = ["ようこそ！LRADチャットボットへ。", "あなたの疑問にお応えします。", "LRAD専用チャットボットです。"]
+WELCOME_MESSAGES_EN = ["Welcome to the LRAD Chat Assistant.", "Your questions, our answers."]
 WELCOME_MESSAGES = WELCOME_MESSAGES_JP if lang == "日本語" else WELCOME_MESSAGES_EN
 
 LOGIN_TITLE = "ログイン" if lang == "日本語" else "Login"
@@ -61,33 +42,26 @@ LOGIN_PASSWORD_LABEL = "パスワードを入力" if lang == "日本語" else "E
 LOGIN_ERROR_MSG = "パスワードが間違っています" if lang == "日本語" else "Incorrect password"
 WELCOME_CAPTION = (
     "※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。"
-    if lang == "日本語"
-    else "This chatbot responds based on FAQ and AI, but may not answer all questions accurately."
+    if lang == "日本語" else
+    "This chatbot responds based on FAQ and AI, but may not answer all questions accurately."
 )
 CHAT_INPUT_PLACEHOLDER = "質問をどうぞ..." if lang == "日本語" else "Ask your question..."
 
 CORRECT_PASSWORD = "mypassword"
 
-if "authenticated" not in st.session_state:
-    st.session_state["authenticated"] = False
-if "show_welcome" not in st.session_state:
-    st.session_state["show_welcome"] = False
-if "welcome_message" not in st.session_state:
-    st.session_state["welcome_message"] = ""
-if "fade_out" not in st.session_state:
-    st.session_state["fade_out"] = False
-
+for key in ["authenticated", "welcome_message", "fade_out", "just_logged_in"]:
+    if key not in st.session_state:
+        st.session_state[key] = False if key != "welcome_message" else ""
 
 def password_check():
     if not st.session_state["authenticated"]:
         with st.form("login_form"):
             st.title(LOGIN_TITLE)
             password = st.text_input(LOGIN_PASSWORD_LABEL, type="password")
-            submitted = st.form_submit_button(LOGIN_TITLE)
-            if submitted:
+            if st.form_submit_button(LOGIN_TITLE):
                 if password == CORRECT_PASSWORD:
                     st.session_state["authenticated"] = True
-                    st.session_state["show_welcome"] = True
+                    st.session_state["just_logged_in"] = True
                     st.session_state["welcome_message"] = random.choice(WELCOME_MESSAGES)
                     st.session_state["fade_out"] = False
                     st.experimental_rerun()
@@ -95,47 +69,26 @@ def password_check():
                     st.error(LOGIN_ERROR_MSG)
         st.stop()
 
-
 password_check()
 
-
 def show_welcome_screen():
-    st.markdown(
-        f"""
+    st.markdown(f"""
         <style>
         .fullscreen {{
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 48px;
-            font-weight: bold;
-            animation: fadein 1.5s forwards;
-            z-index: 9999;
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: white; display: flex; justify-content: center; align-items: center;
+            font-size: 48px; font-weight: bold; animation: fadein 1.5s forwards; z-index: 9999;
         }}
-        .fadeout {{
-            animation: fadeout 1.5s forwards;
-        }}
-        @keyframes fadein {{
-            from {{ opacity: 0; }}
-            to {{ opacity: 1; }}
-        }}
-        @keyframes fadeout {{
-            from {{ opacity: 1; }}
-            to {{ opacity: 0; }}
-        }}
+        .fadeout {{ animation: fadeout 1.5s forwards; }}
+        @keyframes fadein {{ from {{ opacity: 0; }} to {{ opacity: 1; }} }}
+        @keyframes fadeout {{ from {{ opacity: 1; }} to {{ opacity: 0; }} }}
         </style>
         <div class="fullscreen {'fadeout' if st.session_state['fade_out'] else ''}">
             {st.session_state['welcome_message']}
         </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    """, unsafe_allow_html=True)
 
-
-if st.session_state["show_welcome"]:
+if st.session_state["just_logged_in"]:
     show_welcome_screen()
     if not st.session_state["fade_out"]:
         time.sleep(2.0)
@@ -143,9 +96,8 @@ if st.session_state["show_welcome"]:
         st.experimental_rerun()
     else:
         time.sleep(1.5)
-        st.session_state["show_welcome"] = False
+        st.session_state["just_logged_in"] = False
         st.experimental_rerun()
-
 
 try:
     client = OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
@@ -153,7 +105,6 @@ except Exception as e:
     st.error("OpenAI APIキーの取得に失敗しました。st.secretsの設定を確認してください。")
     st.error(traceback.format_exc())
     st.stop()
-
 
 def get_base64_image(path):
     try:
@@ -163,38 +114,27 @@ def get_base64_image(path):
         st.warning(f"画像の読み込みに失敗しました: {e}")
         return ""
 
-
 image_base64 = get_base64_image("LRADimg.png")
-
-# タイトル（日本語・英語対応）
 title_text = "LRADサポートチャット" if lang == "日本語" else "LRAD Support Chat"
 
-st.markdown(
-    f"""
+st.markdown(f"""
     <div style="display:flex; align-items:center;">
         <img src="data:image/png;base64,{image_base64}" width="80" style="margin-right:10px;">
         <h1 style="margin:0; font-size:32px;">{title_text}</h1>
     </div>
-    """,
-    unsafe_allow_html=True
-)
-
+""", unsafe_allow_html=True)
 
 st.caption(WELCOME_CAPTION)
 
-
 def is_valid_input(text: str) -> bool:
     text = text.strip()
-    if not (3 <= len(text) <= 300):
-        return False
-    if len(re.findall(r"[^A-Za-z0-9ぁ-んァ-ヶ一-龠\s]", text)) / len(text) > 0.3:
-        return False
+    if not (3 <= len(text) <= 300): return False
+    if len(re.findall(r"[^A-Za-z0-9ぁ-んァ-ヶ一-龠\s]", text)) / len(text) > 0.3: return False
     try:
         unicodedata.normalize("NFKC", text).encode("utf-8")
     except UnicodeError:
         return False
     return True
-
 
 def get_embedding(text):
     text = text.replace("\n", " ")
@@ -205,84 +145,51 @@ def get_embedding(text):
         st.error(f"埋め込み取得に失敗しました: {e}")
         return np.zeros(1536)
 
-
 @st.cache_data
 def load_faq(path="faq_all.csv"):
     df = pd.read_csv(path)
     df["embedding"] = df["質問"].apply(lambda x: get_embedding(str(x)))
     return df
 
-
 faq_df = load_faq()
 
-
 @st.cache_data
-def load_common_faq_jp(path="faq_common_jp.csv"):
+def load_common_faq():
+    path = "faq_common_jp.csv" if lang == "日本語" else "faq_common_en.csv"
     try:
         df = pd.read_csv(path)
         return df
     except Exception as e:
-        st.error(f"よくある質問ファイル（日本語）の読み込みに失敗しました: {e}")
-        return pd.DataFrame(columns=["質問", "回答"])
+        st.error(f"よくある質問ファイルの読み込みに失敗しました: {e}")
+        return pd.DataFrame(columns=["質問", "回答"] if lang == "日本語" else ["question", "answer"])
 
-@st.cache_data
-def load_common_faq_en(path="faq_common_en.csv"):
-    try:
-        df = pd.read_csv(path)
-        return df
-    except Exception as e:
-        st.error(f"FAQ file (English) loading failed: {e}")
-        return pd.DataFrame(columns=["question", "answer"])
+common_faq_df = load_common_faq()
 
-
-if lang == "日本語":
-    common_faq_df = load_common_faq_jp()
-else:
-    common_faq_df = load_common_faq_en()
-
-
-with st.expander("💡 よくある質問" if lang == "日本語" else "💡 FAQ", expanded=False):
+with st.expander("\U0001F4A1 よくある質問" if lang == "日本語" else "\U0001F4A1 FAQ", expanded=False):
     if not common_faq_df.empty:
-        search_label = "🔎 キーワードで検索" if lang == "日本語" else "🔎 Search keyword"
-        no_match_msg = "一致するFAQが見つかりませんでした。" if lang == "日本語" else "No matching FAQ found."
-        
-        search_keyword = st.text_input(search_label, "")
-        if search_keyword:
-            if lang == "日本語":
-                df_filtered = common_faq_df[
-                    common_faq_df["質問"].str.contains(search_keyword, case=False, na=False) |
-                    common_faq_df["回答"].str.contains(search_keyword, case=False, na=False)
-                ]
+        label = "\U0001F50E キーワードで検索" if lang == "日本語" else "\U0001F50E Search keyword"
+        no_match = "一致するFAQが見つかりませんでした。" if lang == "日本語" else "No matching FAQ found."
+        key = st.text_input(label, "")
+        if key:
+            cols = ["質問", "回答"] if lang == "日本語" else ["question", "answer"]
+            filtered = common_faq_df[
+                common_faq_df[cols[0]].str.contains(key, case=False, na=False) |
+                common_faq_df[cols[1]].str.contains(key, case=False, na=False)
+            ]
+            if filtered.empty:
+                st.info(no_match)
             else:
-                df_filtered = common_faq_df[
-                    common_faq_df["question"].str.contains(search_keyword, case=False, na=False) |
-                    common_faq_df["answer"].str.contains(search_keyword, case=False, na=False)
-                ]
-            if df_filtered.empty:
-                st.info(no_match_msg)
-            else:
-                for _, row in df_filtered.iterrows():
-                    if lang == "日本語":
-                        st.markdown(f"**Q. {row['質問']}**")
-                        st.markdown(f"A. {row['回答']}")
-                    else:
-                        st.markdown(f"**Q. {row['question']}**")
-                        st.markdown(f"A. {row['answer']}")
+                for _, row in filtered.iterrows():
+                    st.markdown(f"**Q. {row[cols[0]]}**")
+                    st.markdown(f"A. {row[cols[1]]}")
                     st.markdown("---")
         else:
             sample = common_faq_df.sample(n=min(3, len(common_faq_df)))
+            cols = ["質問", "回答"] if lang == "日本語" else ["question", "answer"]
             for _, row in sample.iterrows():
-                if lang == "日本語":
-                    st.markdown(f"**Q. {row['質問']}**")
-                    st.markdown(f"A. {row['回答']}")
-                else:
-                    st.markdown(f"**Q. {row['question']}**")
-                    st.markdown(f"A. {row['answer']}")
+                st.markdown(f"**Q. {row[cols[0]]}**")
+                st.markdown(f"A. {row[cols[1]]}")
                 st.markdown("---")
-
-
-
-
 
 def find_top_similar(q, df, k=1):
     q_vec = get_embedding(q)
@@ -294,7 +201,6 @@ def find_top_similar(q, df, k=1):
     except Exception:
         return None, None
 
-
 def generate_response(user_q, ref_q, ref_a):
     system_prompt = (
         "あなたはLRAD（遠赤外線電子熱分解装置）の専門家です。\n"
@@ -303,46 +209,31 @@ def generate_response(user_q, ref_q, ref_a):
     )
     messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_q}]
     try:
-        res = client.chat.completions.create(
-            model="gpt-3.5-turbo", messages=messages, temperature=0.3
-        )
+        res = client.chat.completions.create(model="gpt-3.5-turbo", messages=messages, temperature=0.3)
         return res.choices[0].message.content.strip()
     except Exception as e:
         st.error(f"AI回答生成に失敗しました: {e}")
         return "申し訳ありません、AIによる回答生成に失敗しました。"
 
-
 def append_to_csv(q, a, path="chat_logs.csv"):
     try:
         df = pd.DataFrame([{"timestamp": pd.Timestamp.now().isoformat(), "question": q, "answer": a}])
-        if not os.path.exists(path):
-            df.to_csv(path, index=False)
-        else:
-            df.to_csv(path, mode="a", header=False, index=False)
+        df.to_csv(path, mode="a", header=not os.path.exists(path), index=False)
     except Exception as e:
         st.warning(f"CSVへの保存に失敗しました: {e}")
-
 
 def append_to_gsheet(q, a):
     try:
         JST = timezone(timedelta(hours=9))
         timestamp = datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S")
-        sheet_key = st.secrets["GoogleSheets"]["sheet_key"]
-        service_account_info = st.secrets["GoogleSheets"]["service_account_info"]
-        if isinstance(service_account_info, str):
-            service_account_info = json.loads(service_account_info)
-        scopes = [
-            "https://www.googleapis.com/auth/spreadsheets",
-            "https://www.googleapis.com/auth/drive",
-        ]
-        creds = Credentials.from_service_account_info(service_account_info, scopes=scopes)
-        gc = gspread.authorize(creds)
-        sh = gc.open_by_key(sheet_key)
-        worksheet = sh.sheet1
-        worksheet.append_row([timestamp, q, a], value_input_option="USER_ENTERED")
+        key = st.secrets["GoogleSheets"]["sheet_key"]
+        info = st.secrets["GoogleSheets"]["service_account_info"]
+        creds = Credentials.from_service_account_info(json.loads(info) if isinstance(info, str) else info,
+                                                      scopes=["https://www.googleapis.com/auth/spreadsheets"])
+        gclient = gspread.authorize(creds)
+        gclient.open_by_key(key).sheet1.append_row([timestamp, q, a], value_input_option="USER_ENTERED")
     except Exception as e:
         st.warning(f"Google Sheetsへの保存に失敗しました: {e}")
-
 
 if "chat_log" not in st.session_state:
     st.session_state.chat_log = []
@@ -364,11 +255,7 @@ if user_q:
 if st.session_state.chat_log and st.session_state.chat_log[-1][1] is None:
     last_q = st.session_state.chat_log[-1][0]
     ref_q, ref_a = find_top_similar(last_q, faq_df)
-    if ref_q is None:
-        answer = "申し訳ありません、関連FAQが見つかりませんでした。"
-    else:
-        with st.spinner("回答生成中…"):
-            answer = generate_response(last_q, ref_q, ref_a)
+    answer = "申し訳ありません、関連FAQが見つかりませんでした。" if ref_q is None else generate_response(last_q, ref_q, ref_a)
     st.session_state.chat_log[-1] = (last_q, answer)
     append_to_csv(last_q, answer)
     append_to_gsheet(last_q, answer)
