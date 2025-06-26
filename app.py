@@ -26,16 +26,22 @@ font_size_map_jp = {"小": "14px", "中": "18px", "大": "24px"}
 font_size_map_en = {"Small": "14px", "Medium": "18px", "Large": "24px"}
 selected_font_size = font_size_map_jp[font_size] if lang == "日本語" else font_size_map_en[font_size]
 
-# CSSで全体の文字サイズを調整（タイトルは別途大きく指定）
+# 全体の文字サイズを調整（サイドバーの選択に応じて）
 st.markdown(f"""
 <style>
-    div[data-testid="stVerticalBlock"] h1 {{
+    div[data-testid="stVerticalBlock"] * {{
+        font-size: {selected_font_size} !important;
+    }}
+    section[data-testid="stSidebar"] * {{
+        font-size: {selected_font_size} !important;
+    }}
+    /* タイトルのフォントサイズだけは別に大きくする */
+    .app-title h1 {{
         font-size: 48px !important;
         margin: 0;
     }}
 </style>
 """, unsafe_allow_html=True)
-
 
 # --- 定数・メッセージ ---
 WELCOME_MESSAGES = [
