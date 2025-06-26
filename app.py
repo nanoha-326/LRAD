@@ -25,59 +25,49 @@ font_size_map_jp = {"小": "14px", "中": "18px", "大": "24px"}
 font_size_map_en = {"Small": "14px", "Medium": "18px", "Large": "24px"}
 selected_font_size = font_size_map_jp[font_size] if lang == "日本語" else font_size_map_en[font_size]
 
-st.markdown(
-    f"""
-    <style>
-        div[data-testid="stVerticalBlock"] * {{ font-size: {selected_font_size}; }}
-        section[data-testid="stSidebar"] * {{ font-size: {selected_font_size}; }}
-        .login-outer {{
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            width: 100vw;
-            position: fixed;
-            top: 0;
-            left: 0;
-            z-index: 9999;
-            background-color: white;
-        }}
-        .login-container {{
-            text-align: center;
-            max-width: 400px;
-            width: 100%;
-            padding: 2em;
-            box-sizing: border-box;
-        }}
-        .login-title {{
-            font-size: 2em;
-            margin-bottom: 1em;
-            font-weight: bold;
-        }}
-        .login-button button {{
-            background-color: #333 !important;
-            color: white !important;
-            border: none !important;
-            padding: 0.5em 2em !important;
-            font-size: 1.2em !important;
-            border-radius: 4px !important;
-            margin-top: 1em !important;
-            cursor: pointer !important;
-            width: 100% !important;
-        }}
-
-        div[data-testid="stTextInput"] > div > div > div {{
-            position: absolute;
-            right: 0.5em;
-            top: 50%;
-            transform: translateY(-50%);
-            pointer-events: auto;
-        }}
-        }}
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+st.markdown(f"""
+<style>
+    div[data-testid="stVerticalBlock"] * {{ font-size: {selected_font_size}; }}
+    section[data-testid="stSidebar"] * {{ font-size: {selected_font_size}; }}
+    .login-outer {{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        width: 100vw;
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 9999;
+        background-color: white;
+    }}
+    .login-container {{
+        text-align: center;
+        max-width: 400px;
+        width: 100%;
+        padding: 2em;
+    }}
+    .login-title {{
+        font-size: 2em;
+        margin-bottom: 1em;
+    }}
+    .login-button button {{
+        background-color: #333 !important;
+        color: white !important;
+        border: none;
+        padding: 0.5em 2em;
+        font-size: 1.2em;
+        border-radius: 4px;
+        margin-top: 1em;
+    }}
+    input[type="password"] {{
+        font-size: 1.2em;
+        padding: 0.5em;
+        width: 100%;
+        max-width: 300px;
+    }}
+</style>
+""", unsafe_allow_html=True)
 
 WELCOME_MESSAGES = [
     "ようこそ！LRADチャットボットへ。",
@@ -106,21 +96,23 @@ if "fade_out" not in st.session_state:
 
 def password_check():
     if not st.session_state["authenticated"]:
-    with st.form("login_form"):
-        st.title(LOGIN_TITLE)
-        st.write("LRADチャットボットにログインしてください。" if is_jp else "Please login to use the LRAD Chat Assistant.")
-        password = st.text_input(LOGIN_PASSWORD_LABEL, type="password", placeholder=LOGIN_PASSWORD_LABEL, key="pw_input")
-        submitted = st.form_submit_button("ログイン" if is_jp else "Login")
-        if submitted:
-            if password == CORRECT_PASSWORD:
-                st.session_state.authenticated = True
-                st.session_state.show_welcome = True
-                st.session_state.welcome_message = random.choice(WELCOME_MESSAGES)
-                st.session_state.fade_out = False
-                st.experimental_rerun()
-            else:
-                st.error(LOGIN_ERROR_MSG)
-    st.stop()
+        st.markdown('<div class="login-outer">', unsafe_allow_html=True)
+        st.markdown('<div class="login-container">', unsafe_allow_html=True)
+        st.markdown(f'<div class="login-title">{LOGIN_TITLE}</div>', unsafe_allow_html=True)
+        with st.form("login_form"):
+            password = st.text_input("", type="password", placeholder=LOGIN_PASSWORD_LABEL, label_visibility="collapsed")
+            submitted = st.form_submit_button("ログイン")
+            if submitted:
+                if password == CORRECT_PASSWORD:
+                    st.session_state["authenticated"] = True
+                    st.session_state["show_welcome"] = True
+                    st.session_state["welcome_message"] = random.choice(WELCOME_MESSAGES)
+                    st.session_state["fade_out"] = False
+                    st.experimental_rerun()
+                else:
+                    st.error(LOGIN_ERROR_MSG)
+        st.markdown('</div></div>', unsafe_allow_html=True)
+        st.stop()
 
 password_check()
 
