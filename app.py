@@ -13,7 +13,7 @@ import time
 
 st.set_page_config(page_title="LRADチャット", layout="centered")
 
-# --- 言語設定とサイドバーUI ---
+# Step 1: 言語設定とサイドバーUI
 lang = st.sidebar.selectbox("言語を選択 / Select Language", ["日本語", "English"], index=0)
 
 sidebar_title = "⚙️ 設定" if lang == "日本語" else "⚙️ Settings"
@@ -36,7 +36,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# --- 定数・メッセージ ---
 WELCOME_MESSAGES = [
     "ようこそ！LRADチャットボットへ。",
     "あなたの疑問にお応えします。",
@@ -53,7 +52,6 @@ WELCOME_CAPTION = "※このチャットボットはFAQとAIをもとに応答�
 CHAT_INPUT_PLACEHOLDER = "質問をどうぞ..." if lang == "日本語" else "Ask your question..."
 CORRECT_PASSWORD = "mypassword"
 
-# --- セッションステート初期化 ---
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
 if "show_welcome" not in st.session_state:
@@ -62,10 +60,7 @@ if "welcome_message" not in st.session_state:
     st.session_state["welcome_message"] = ""
 if "fade_out" not in st.session_state:
     st.session_state["fade_out"] = False
-if "chat_log" not in st.session_state:
-    st.session_state["chat_log"] = []
 
-# --- パスワード認証フォーム ---
 def password_check():
     if not st.session_state["authenticated"]:
         with st.form("login_form"):
@@ -85,7 +80,6 @@ def password_check():
 
 password_check()
 
-# --- ウェルカムメッセージ表示 ---
 def show_welcome_screen():
     st.markdown(
         f"""
@@ -116,7 +110,6 @@ def show_welcome_screen():
         unsafe_allow_html=True,
     )
 
-
 if st.session_state["show_welcome"]:
     show_welcome_screen()
     if not st.session_state["fade_out"]:
@@ -128,7 +121,6 @@ if st.session_state["show_welcome"]:
         st.session_state["show_welcome"] = False
         st.experimental_rerun()
 
-# --- OpenAIクライアント初期化 ---
 try:
     client = OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
 except Exception as e:
@@ -136,7 +128,6 @@ except Exception as e:
     st.error(traceback.format_exc())
     st.stop()
 
-# --- テキスト埋め込み取得関数 ---
 def get_embedding(text):
     text = text.replace("\n", " ")
     try:
@@ -146,17 +137,14 @@ def get_embedding(text):
         st.error(f"埋め込み取得に失敗しました: {e}")
         return np.zeros(1536)
 
-# --- FAQデータ読み込み（チャット用） ---
 @st.cache_data
 def load_faq(path="faq_all.csv"):
     df = pd.read_csv(path)
-    # FAQの「質問」列を使い埋め込み計算（キャッシュされる）
     df["embedding"] = df["質問"].apply(lambda x: get_embedding(str(x)))
     return df
 
 faq_df = load_faq()
 
-# --- FAQデータ読み込み（よくある質問用） ---
 faq_common_path = "faq_common_jp.csv" if lang == "日本語" else "faq_common_en.csv"
 
 @st.cache_data
@@ -166,13 +154,10 @@ def load_common_faq(path):
         return df
     except Exception as e:
         st.error(f"よくある質問ファイルの読み込みに失敗しました: {e}")
-        # 日本語・英語でカラムを分ける
-        cols = ["質問", "回答"] if lang == "日本語" else ["question", "answer"]
-        return pd.DataFrame(columns=cols)
+        return pd.DataFrame(columns=["質問", "回答"] if lang == "日本語" else ["question", "answer"])
 
 common_faq_df = load_common_faq(faq_common_path)
 
-# --- 画面タイトル＆ロゴ表示 ---
 image_base64 = ""
 try:
     with open("LRADimg.png", "rb") as img_file:
@@ -190,7 +175,6 @@ st.markdown(f"""
 
 st.caption(WELCOME_CAPTION)
 
-# --- よくある質問表示エリア ---
 with st.expander("💡 よくある質問" if lang == "日本語" else "💡 FAQ", expanded=False):
     if not common_faq_df.empty:
         search_label = "🔎 キーワードで検索" if lang == "日本語" else "🔎 Search keyword"
@@ -198,11 +182,10 @@ with st.expander("💡 よくある質問" if lang == "日本語" else "💡 FAQ
         search_keyword = st.text_input(search_label, "")
         col_q = "質問" if lang == "日本語" else "question"
         col_a = "回答" if lang == "日本語" else "answer"
-
         if search_keyword:
             df_filtered = common_faq_df[
-                common_faq_df[col_q].str.contains(search_keyword, na=False, case=False) |
-                common_faq_df[col_a].str.contains(search_keyword, na=False, case=False)
+                common_faq_df[col_q].str.contains(search_keyword, case=False, na=False) |
+                common_faq_df[col_a].str.contains(search_keyword, case=False, na=False)
             ]
             if df_filtered.empty:
                 st.info(no_match_msg)
@@ -218,20 +201,6 @@ with st.expander("💡 よくある質問" if lang == "日本語" else "💡 FAQ
                 st.markdown(f"A. {row[col_a]}")
                 st.markdown("---")
 
-# --- 入力検証関数 ---
-def is_valid_input(text: str) -> bool:
-    text = text.strip()
-    if not (3 <= len(text) <= 300):
-        return False
-    if len(re.findall(r"[^A-Za-z0-9ぁ-んァ-ヶ一-龠\s]", text)) / max(len(text),1) > 0.3:
-        return False
-    try:
-        unicodedata.normalize("NFKC", text).encode("utf-8")
-    except UnicodeError:
-        return False
-    return True
-
-# --- 類似FAQ検索関数 ---
 def find_top_similar(q, df, k=1):
     q_vec = get_embedding(q)
     try:
@@ -242,16 +211,11 @@ def find_top_similar(q, df, k=1):
     except Exception:
         return None, None
 
-# --- 回答生成関数 ---
 def generate_response(user_q, ref_q, ref_a):
     system_prompt = (
         "あなたはLRAD（遠赤外線電子熱分解装置）の専門家です。\n"
         f"FAQ質問: {ref_q}\nFAQ回答: {ref_a}\n"
         "この情報をもとに200文字以内で簡潔にユーザーの質問に答えてください。"
-        if lang == "日本語" else
-        "You are an expert on LRAD (far-infrared electronic pyrolysis device).\n"
-        f"FAQ Question: {ref_q}\nFAQ Answer: {ref_a}\n"
-        "Answer the user's question concisely within 200 characters based on this information."
     )
     messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_q}]
     try:
@@ -261,9 +225,8 @@ def generate_response(user_q, ref_q, ref_a):
         return res.choices[0].message.content.strip()
     except Exception as e:
         st.error(f"AI回答生成に失敗しました: {e}")
-        return "申し訳ありません、AIによる回答生成に失敗しました。" if lang == "日本語" else "Sorry, failed to generate AI response."
+        return "申し訳ありません、AIによる回答生成に失敗しました。"
 
-# --- CSVログ保存関数 ---
 def append_to_csv(q, a, path="chat_logs.csv"):
     try:
         df = pd.DataFrame([{"timestamp": pd.Timestamp.now().isoformat(), "question": q, "answer": a}])
@@ -274,44 +237,45 @@ def append_to_csv(q, a, path="chat_logs.csv"):
     except Exception as e:
         st.warning(f"CSVへの保存に失敗しました: {e}")
 
-# --- Google Sheetsログ保存関数 ---
 def append_to_gsheet(q, a):
     try:
         JST = timezone(timedelta(hours=9))
         timestamp = datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S")
-        sheet_key = st.secrets.gsheet.key
-        credentials_dict = st.secrets.gsheet.credentials
-        creds = Credentials.from_service_account_info(credentials_dict)
+        sheet_key = st.secrets["GoogleSheets"]["sheet_key"]
+        service_account_info = st.secrets["GoogleSheets"]["service_account_info"]
+        if isinstance(service_account_info, str):
+            service_account_info = json.loads(service_account_info)
+        scopes = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive",
+        ]
+        creds = Credentials.from_service_account_info(service_account_info, scopes=scopes)
         gc = gspread.authorize(creds)
-        ws = gc.open_by_key(sheet_key).sheet1
-        ws.append_row([timestamp, q, a])
+        sh = gc.open_by_key(sheet_key)
+        worksheet = sh.sheet1
+        worksheet.append_row([timestamp, q, a])
     except Exception as e:
         st.warning(f"Google Sheetsへの保存に失敗しました: {e}")
 
-# --- チャットUI ---
-st.write("---")
-st.markdown(f"### {'質問入力' if lang == '日本語' else 'Ask a Question'}")
+if "chat_history" not in st.session_state:
+    st.session_state["chat_history"] = []
 
-user_input = st.text_input("", placeholder=CHAT_INPUT_PLACEHOLDER, key="input")
+if st.session_state["authenticated"] and not st.session_state["show_welcome"]:
 
-if user_input and is_valid_input(user_input):
-    # 類似FAQ検索（上位1件）
-    ref_q, ref_a = find_top_similar(user_input, faq_df, k=1)
-    if ref_q is None:
-        response = "申し訳ありません、関連するFAQが見つかりませんでした。" if lang == "日本語" else "Sorry, no related FAQ found."
-    else:
-        response = generate_response(user_input, ref_q, ref_a)
+    user_input = st.text_input(CHAT_INPUT_PLACEHOLDER, key="user_input")
 
-    # チャットログ更新
-    st.session_state.chat_log.append({"user": user_input, "bot": response})
+    if user_input:
+        with st.spinner("回答を生成中..."):
+            ref_q, ref_a = find_top_similar(user_input, faq_df)
+            if ref_q and ref_a:
+                answer = generate_response(user_input, ref_q, ref_a)
+            else:
+                answer = "申し訳ありませんが、関連するFAQが見つかりませんでした。"
+            st.session_state["chat_history"].append({"question": user_input, "answer": answer})
+            append_to_csv(user_input, answer)
+            append_to_gsheet(user_input, answer)
 
-    # ログ保存
-    append_to_csv(user_input, response)
-    append_to_gsheet(user_input, response)
-
-# チャットログ表示（下から上へ）
-if st.session_state.chat_log:
-    for chat in reversed(st.session_state.chat_log):
-        st.markdown(f"**You:** {chat['user']}")
-        st.markdown(f"**Bot:** {chat['bot']}")
+    for chat in st.session_state["chat_history"]:
+        st.markdown(f"**Q. {chat['question']}**")
+        st.markdown(f"A. {chat['answer']}")
         st.markdown("---")
