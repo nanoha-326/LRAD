@@ -116,6 +116,7 @@ def password_check():
 
 password_check()
 
+# --- welcome画面の表示 ---
 def show_welcome_screen():
     st.markdown(
         f"""
