@@ -13,6 +13,7 @@ import time
 
 st.set_page_config(page_title="LRADチャット", layout="centered")
 
+# Step 1: 言語設定とサイドバーUI
 lang = st.sidebar.selectbox("言語を選択 / Select Language", ["日本語", "English"], index=0)
 
 sidebar_title = "⚙️ 設定" if lang == "日本語" else "⚙️ Settings"
@@ -25,51 +26,15 @@ font_size_map_jp = {"小": "14px", "中": "18px", "大": "24px"}
 font_size_map_en = {"Small": "14px", "Medium": "18px", "Large": "24px"}
 selected_font_size = font_size_map_jp[font_size] if lang == "日本語" else font_size_map_en[font_size]
 
-st.markdown(f"""
-<style>
-    div[data-testid="stVerticalBlock"] * {{ font-size: {selected_font_size}; }}
-    section[data-testid="stSidebar"] * {{ font-size: {selected_font_size}; }}
-    .login-outer {{
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        width: 100vw;
-        position: fixed;
-        top: 0;
-        left: 0;
-        z-index: 9999;
-        background-color: white;
-    }}
-    .login-container {{
-        text-align: left;
-        max-width: 400px;
-        width: 100%;
-        padding: 2em;
-    }}
-    .login-title {{
-        font-size: 2.5em;
-        margin-bottom: 1em;
-        text-align: center;
-    }}
-    .login-button button {{
-        background-color: #333 !important;
-        color: white !important;
-        border: none;
-        padding: 0.5em 2em;
-        font-size: 1.2em;
-        border-radius: 4px;
-        margin-top: 1em;
-        width: 100%;
-    }}
-    input[type="password"] {{
-        font-size: 1.2em;
-        padding: 0.5em;
-        width: 100%;
-        max-width: 300px;
-    }}
-</style>
-""", unsafe_allow_html=True)
+st.markdown(
+    f"""
+    <style>
+        div[data-testid="stVerticalBlock"] * {{ font-size: {selected_font_size}; }}
+        section[data-testid="stSidebar"] * {{ font-size: {selected_font_size}; }}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 WELCOME_MESSAGES = [
     "ようこそ！LRADチャットボットへ。",
