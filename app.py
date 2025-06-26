@@ -50,7 +50,7 @@ LOGIN_PASSWORD_LABEL = "パスワードを入力" if lang == "日本語" else "E
 LOGIN_ERROR_MSG = "パスワードが間違っています" if lang == "日本語" else "Incorrect password"
 WELCOME_CAPTION = "※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。" if lang == "日本語" else "This chatbot responds based on FAQ and AI, but may not answer all questions accurately."
 CHAT_INPUT_PLACEHOLDER = "質問をどうぞ..." if lang == "日本語" else "Ask your question..."
-CORRECT_PASSWORD = "mypassword"
+CORRECT_PASSWORD = "imugenos"
 
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
