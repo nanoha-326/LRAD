@@ -13,7 +13,7 @@ import time
 
 st.set_page_config(page_title="LRADチャット", layout="centered")
 
-# Step 1: 言語設定とサイドバーUI
+# --- サイドバー：言語と文字サイズ設定 ---
 lang = st.sidebar.selectbox("言語を選択 / Select Language", ["日本語", "English"], index=0)
 
 sidebar_title = "⚙️ 設定" if lang == "日本語" else "⚙️ Settings"
@@ -26,16 +26,17 @@ font_size_map_jp = {"小": "14px", "中": "18px", "大": "24px"}
 font_size_map_en = {"Small": "14px", "Medium": "18px", "Large": "24px"}
 selected_font_size = font_size_map_jp[font_size] if lang == "日本語" else font_size_map_en[font_size]
 
-st.markdown(
-    f"""
-    <style>
-        div[data-testid="stVerticalBlock"] * {{ font-size: {selected_font_size}; }}
-        section[data-testid="stSidebar"] * {{ font-size: {selected_font_size}; }}
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+# CSSで全体の文字サイズを調整（タイトルは別途大きく指定）
+st.markdown(f"""
+<style>
+    div[data-testid="stVerticalBlock"] * {{ font-size: {selected_font_size}; }}
+    section[data-testid="stSidebar"] * {{ font-size: {selected_font_size}; }}
+    /* タイトルを常に大きく */
+    .app-title h1 {{ font-size: 36px !important; margin: 0; }}
+</style>
+""", unsafe_allow_html=True)
 
+# --- 定数・メッセージ ---
 WELCOME_MESSAGES = [
     "ようこそ！LRADチャットボットへ。",
     "あなたの疑問にお応えします。",
@@ -50,8 +51,9 @@ LOGIN_PASSWORD_LABEL = "パスワードを入力" if lang == "日本語" else "E
 LOGIN_ERROR_MSG = "パスワードが間違っています" if lang == "日本語" else "Incorrect password"
 WELCOME_CAPTION = "※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。" if lang == "日本語" else "This chatbot responds based on FAQ and AI, but may not answer all questions accurately."
 CHAT_INPUT_PLACEHOLDER = "質問をどうぞ..." if lang == "日本語" else "Ask your question..."
-CORRECT_PASSWORD = "imugenos"
+CORRECT_PASSWORD = "mypassword"
 
+# --- セッション状態初期化 ---
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
 if "show_welcome" not in st.session_state:
@@ -60,14 +62,15 @@ if "welcome_message" not in st.session_state:
     st.session_state["welcome_message"] = ""
 if "fade_out" not in st.session_state:
     st.session_state["fade_out"] = False
-if "chat_history" not in st.session_state:
-    st.session_state["chat_history"] = []
+if "chat_log" not in st.session_state:
+    st.session_state["chat_log"] = []
 
+# --- ログイン認証処理 ---
 def password_check():
     if not st.session_state["authenticated"]:
         with st.form("login_form"):
             st.title(LOGIN_TITLE)
-            password = st.text_input(LOGIN_PASSWORD_LABEL, type="password")
+            password = st.text_input(LOGIN_PASSWORD_LABEL, type="password", placeholder=LOGIN_PASSWORD_LABEL)
             submitted = st.form_submit_button(LOGIN_TITLE)
             if submitted:
                 if password == CORRECT_PASSWORD:
@@ -82,6 +85,7 @@ def password_check():
 
 password_check()
 
+# --- ウェルカム画面表示 ---
 def show_welcome_screen():
     st.markdown(
         f"""
@@ -123,6 +127,7 @@ if st.session_state["show_welcome"]:
         st.session_state["show_welcome"] = False
         st.experimental_rerun()
 
+# --- OpenAI APIクライアント初期化 ---
 try:
     client = OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
 except Exception as e:
@@ -130,6 +135,7 @@ except Exception as e:
     st.error(traceback.format_exc())
     st.stop()
 
+# --- 埋め込み取得関数 ---
 def get_embedding(text):
     text = text.replace("\n", " ")
     try:
@@ -139,6 +145,7 @@ def get_embedding(text):
         st.error(f"埋め込み取得に失敗しました: {e}")
         return np.zeros(1536)
 
+# --- FAQデータ読み込み ---
 @st.cache_data
 def load_faq(path="faq_all.csv"):
     df = pd.read_csv(path)
@@ -160,6 +167,7 @@ def load_common_faq(path):
 
 common_faq_df = load_common_faq(faq_common_path)
 
+# --- ロゴ画像読み込み ---
 image_base64 = ""
 try:
     with open("LRADimg.png", "rb") as img_file:
@@ -167,16 +175,18 @@ try:
 except Exception:
     pass
 
+# --- タイトル表示 ---
 title_text = "LRADサポートチャット" if lang == "日本語" else "LRAD Support Chat"
 st.markdown(f"""
-    <div style="display:flex; align-items:center;">
-        <img src="data:image/png;base64,{image_base64}" width="80" style="margin-right:10px;">
-        <h1 style="margin:0; font-size:32px;">{title_text}</h1>
-    </div>
+<div class="app-title" style="display:flex; align-items:center;">
+    <img src="data:image/png;base64,{image_base64}" width="80" style="margin-right:10px;">
+    <h1>{title_text}</h1>
+</div>
 """, unsafe_allow_html=True)
 
 st.caption(WELCOME_CAPTION)
 
+# --- よくある質問（FAQ）展開 ---
 with st.expander("💡 よくある質問" if lang == "日本語" else "💡 FAQ", expanded=False):
     if not common_faq_df.empty:
         search_label = "🔎 キーワードで検索" if lang == "日本語" else "🔎 Search keyword"
@@ -200,6 +210,7 @@ with st.expander("💡 よくある質問" if lang == "日本語" else "💡 FAQ
                 st.markdown(f"A. {row[col_a]}")
                 st.markdown("---")
 
+# --- 類似質問検索 ---
 def find_top_similar(q, df, k=1):
     q_vec = get_embedding(q)
     try:
@@ -210,6 +221,7 @@ def find_top_similar(q, df, k=1):
     except Exception:
         return None, None
 
+# --- AI回答生成 ---
 def generate_response(user_q, ref_q, ref_a):
     system_prompt = (
         "あなたはLRAD（遠赤外線電子熱分解装置）の専門家です。\n"
@@ -226,6 +238,7 @@ def generate_response(user_q, ref_q, ref_a):
         st.error(f"AI回答生成に失敗しました: {e}")
         return "申し訳ありません。回答の生成中にエラーが発生しました。"
 
+# --- チャットログCSV保存 ---
 def append_to_csv(q, a, path="chat_logs.csv"):
     try:
         df = pd.DataFrame([{"timestamp": pd.Timestamp.now().isoformat(), "question": q, "answer": a}])
@@ -236,7 +249,7 @@ def append_to_csv(q, a, path="chat_logs.csv"):
     except Exception as e:
         st.warning(f"CSVへの保存に失敗しました: {e}")
 
-
+# --- チャットログGoogle Sheets保存 ---
 def append_to_gsheet(q, a):
     try:
         JST = timezone(timedelta(hours=9))
@@ -257,22 +270,22 @@ def append_to_gsheet(q, a):
     except Exception as e:
         st.warning(f"Google Sheetsへの保存に失敗しました: {e}")
 
+# --- ユーザー入力のバリデーション関数 ---
+def is_valid_input(text):
+    # 3～300文字、記号率30%未満の簡単なチェック例
+    if not (3 <= len(text) <= 300):
+        return False
+    # 記号（英数字・かな以外）率計算
+    symbol_count = sum(1 for c in text if not re.match(r'[a-zA-Z0-9ぁ-んァ-ン一-龥]', c))
+    if symbol_count / max(1, len(text)) > 0.3:
+        return False
+    return True
 
-if "chat_log" not in st.session_state:
-    st.session_state.chat_log = []
-
+# --- チャット画面表示・動作 ---
 for q, a in st.session_state.chat_log:
     st.chat_message("user").write(q)
     if a:
         st.chat_message("assistant").write(a)
-
-def is_valid_input(text):
-    # 長さ：3〜300文字、記号率30%未満（記号 = 英数字以外）
-    if not (3 <= len(text) <= 300):
-        return False
-    symbol_count = sum(not c.isalnum() and not c.isspace() for c in text)
-    return (symbol_count / len(text)) < 0.3
-
 
 user_q = st.chat_input(CHAT_INPUT_PLACEHOLDER)
 
