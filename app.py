@@ -72,18 +72,17 @@ st.markdown(
             max-width: 300px !important;
             box-sizing: border-box !important;
         }}
-        /* 目のアイコンを右端に寄せる */
-        input[type="password"]::-ms-reveal {{
-            right: 0.5em !important;
-            position: absolute !important;
+        div[data-testid="stTextInput"] > div > div > input[type="password"] {{
+            padding-right: 2.5em;
         }}
-        input[type="password"]::-webkit-credentials-auto-fill-button {{
-            right: 0.5em !important;
-            position: absolute !important;
+
+        div[data-testid="stTextInput"] > div > div > div {{
+            position: absolute;
+            right: 0.5em;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: auto;
         }}
-        /* 入力フォームのラッパーに相対配置を付与してアイコンを正しく配置 */
-        div[data-baseweb="input"] > div:first-child {{
-            position: relative !important;
         }}
     </style>
     """,
