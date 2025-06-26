@@ -15,7 +15,7 @@ from google.oauth2.service_account import Credentials
 
 st.set_page_config(page_title="LRADチャット", layout="centered")
 
-# --- 言語設定とサイドバーUI ---
+# --- 言語設定とフォントサイズ設定 ---
 lang = st.sidebar.selectbox("言語を選択 / Select Language", ["日本語", "English"], index=0)
 
 sidebar_title = "⚙️ 設定" if lang == "日本語" else "⚙️ Settings"
@@ -49,84 +49,83 @@ WELCOME_MESSAGES = [
 ]
 
 LOGIN_TITLE = "LRADチャットへログイン" if lang == "日本語" else "Login to LRAD Chat"
-LOGIN_PASSWORD_LABEL = "パスワードを入力してください" if lang == "日本語" else "Enter password"
-LOGIN_ERROR_MSG = "パスワードが間違っています" if lang == "日本語" else "Incorrect password"
-WELCOME_CAPTION = "※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。" if lang == "日本語" else "This chatbot responds based on FAQ and AI, but may not answer all questions accurately."
+LOGIN_PASSWORD_LABEL = "パスワードを入力してください" if lang == "日本語" else "Enter Password"
+LOGIN_ERROR_MSG = "パスワードが間違っています。" if lang == "日本語" else "Incorrect password."
+WELCOME_CAPTION = (
+    "※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。"
+    if lang == "日本語"
+    else "This chatbot responds based on FAQ and AI, but may not answer all questions accurately."
+)
 CHAT_INPUT_PLACEHOLDER = "質問をどうぞ..." if lang == "日本語" else "Ask your question..."
-CORRECT_PASSWORD = "mypassword"  # ここは適宜変更してください
+CORRECT_PASSWORD = "mypassword"
 
 # --- セッションステート初期化 ---
-for key, default in {
-    "authenticated": False,
-    "show_welcome": False,
-    "welcome_message": "",
-    "welcome_start_time": None,
-    "chat_log": [],
-}.items():
+for key in ["authenticated", "show_welcome", "welcome_message", "welcome_start_time", "fade_out", "chat_log"]:
     if key not in st.session_state:
-        st.session_state[key] = default
+        if key == "chat_log":
+            st.session_state[key] = []
+        else:
+            st.session_state[key] = False if key in ["authenticated", "show_welcome", "fade_out"] else ""
 
-# --- ログイン画面 ---
+# --- パスワード認証フォーム ---
 def password_check():
     if not st.session_state.authenticated:
         with st.form("login_form"):
             st.title(LOGIN_TITLE)
-            password = st.text_input(LOGIN_PASSWORD_LABEL, type="password", key="pw_input")
-            submitted = st.form_submit_button("Login" if lang == "English" else "ログイン")
+            password = st.text_input(LOGIN_PASSWORD_LABEL, type="password", placeholder="******")
+            submitted = st.form_submit_button("ログイン" if lang == "日本語" else "Login")
             if submitted:
                 if password == CORRECT_PASSWORD:
                     st.session_state.authenticated = True
                     st.session_state.show_welcome = True
-                    st.session_state.welcome_start_time = time.time()
                     st.session_state.welcome_message = random.choice(WELCOME_MESSAGES)
+                    st.session_state.welcome_start_time = time.time()
                     st.experimental_rerun()
                 else:
                     st.error(LOGIN_ERROR_MSG)
         st.stop()
 
-password_check()
-
-# --- Welcome画面表示 ---
-def show_welcome_screen():
+# --- welcome画面表示処理 ---
+def show_welcome():
     elapsed = time.time() - st.session_state.welcome_start_time
-    opacity = 1
-    if elapsed > 3:
-        opacity = max(0, 1 - (elapsed - 10) / 1.5)
+    WELCOME_DISPLAY_SECONDS = 3
+    FADEOUT_SECONDS = 1.5
 
-    st.markdown(f"""
+    if elapsed < WELCOME_DISPLAY_SECONDS:
+        opacity = 1
+    elif elapsed < WELCOME_DISPLAY_SECONDS + FADEOUT_SECONDS:
+        opacity = 1 - (elapsed - WELCOME_DISPLAY_SECONDS) / FADEOUT_SECONDS
+    else:
+        st.session_state.show_welcome = False
+        st.experimental_rerun()
+        return
+
+    st.markdown(
+        f"""
     <style>
     .fullscreen {{
         position: fixed;
-        top: 0; left: 0; right: 0; bottom: 0;
+        top:0; left:0; right:0; bottom:0;
         background-color: white;
         display: flex;
         justify-content: center;
         align-items: center;
         font-size: 64px;
         font-weight: bold;
-        z-index: 9999;
         text-align: center;
         padding: 0 20px;
         word-break: break-word;
         opacity: {opacity};
-        transition: opacity 1.5s ease;
+        transition: opacity 0.3s linear;
+        z-index: 9999;
     }}
     </style>
     <div class="fullscreen">
         {st.session_state.welcome_message}
     </div>
-    """, unsafe_allow_html=True)
-
-    if elapsed < 4.5:
-        time.sleep(0.1)
-        st.experimental_rerun()
-    else:
-        st.session_state.show_welcome = False
-        st.session_state.welcome_start_time = None
-        st.experimental_rerun()
-
-if st.session_state.show_welcome:
-    show_welcome_screen()
+    """,
+        unsafe_allow_html=True,
+    )
     st.stop()
 
 #######################################################################################
