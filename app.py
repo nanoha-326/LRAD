@@ -28,13 +28,12 @@ selected_font_size = font_size_map_jp[font_size] if lang == "日本語" else fon
 
 # CSSで全体の文字サイズを調整（タイトルは別途大きく指定）
 st.markdown(f"""
-<style>
-    div[data-testid="stVerticalBlock"] * {{ font-size: {selected_font_size}; }}
-    section[data-testid="stSidebar"] * {{ font-size: {selected_font_size}; }}
-    /* タイトルを常に大きく */
-    .app-title h1 {{ font-size: 36px !important; margin: 0; }}
-</style>
+<div style="display:flex; align-items:center;">
+    <img src="data:image/png;base64,{image_base64}" width="80" style="margin-right:10px;">
+    <h1 style="font-size: 48px; margin: 0;">{title_text}</h1>
+</div>
 """, unsafe_allow_html=True)
+
 
 # --- 定数・メッセージ ---
 WELCOME_MESSAGES = [
