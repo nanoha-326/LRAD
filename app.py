@@ -47,30 +47,43 @@ st.markdown(
             max-width: 400px;
             width: 100%;
             padding: 2em;
+            box-sizing: border-box;
         }}
         .login-title {{
             font-size: 2em;
             margin-bottom: 1em;
+            font-weight: bold;
         }}
         .login-button button {{
             background-color: #333 !important;
             color: white !important;
-            border: none;
-            padding: 0.5em 2em;
-            font-size: 1.2em;
-            border-radius: 4px;
-            margin-top: 1em;
+            border: none !important;
+            padding: 0.5em 2em !important;
+            font-size: 1.2em !important;
+            border-radius: 4px !important;
+            margin-top: 1em !important;
+            cursor: pointer !important;
+            width: 100% !important;
         }}
         input[type="password"] {{
-            font-size: 1.2em;
-            padding: 0.5em;
-            width: 100%;
-            max-width: 300px;
+            font-size: 1.2em !important;
+            padding: 0.5em !important;
+            width: 100% !important;
+            max-width: 300px !important;
+            box-sizing: border-box !important;
         }}
-        input[type="password"]::-ms-reveal, 
-        input[type="password"]::-webkit-credentials-auto-fill-button {{
-            right: 0.75em !important;
+        /* 目のアイコンを右端に寄せる */
+        input[type="password"]::-ms-reveal {{
+            right: 0.5em !important;
             position: absolute !important;
+        }}
+        input[type="password"]::-webkit-credentials-auto-fill-button {{
+            right: 0.5em !important;
+            position: absolute !important;
+        }}
+        /* 入力フォームのラッパーに相対配置を付与してアイコンを正しく配置 */
+        div[data-baseweb="input"] > div:first-child {{
+            position: relative !important;
         }}
     </style>
     """,
@@ -108,8 +121,13 @@ def password_check():
         st.markdown('<div class="login-container">', unsafe_allow_html=True)
         st.markdown(f'<div class="login-title">{LOGIN_TITLE}</div>', unsafe_allow_html=True)
         with st.form("login_form"):
-            password = st.text_input("", type="password", placeholder=LOGIN_PASSWORD_LABEL, label_visibility="collapsed")
-            submitted = st.form_submit_button("ログイン")
+            password = st.text_input(
+                label="",
+                type="password",
+                placeholder=LOGIN_PASSWORD_LABEL,
+                label_visibility="collapsed",
+            )
+            submitted = st.form_submit_button("ログイン", help="クリックしてログイン")
             if submitted:
                 if password == CORRECT_PASSWORD:
                     st.session_state["authenticated"] = True
@@ -124,55 +142,47 @@ def password_check():
 
 password_check()
 
-
-# --- ウェルカム画面表示 ---
 def show_welcome_screen():
-    st.markdown(f"""
-    <style>
-    .fullscreen {{
-        position: fixed;
-        top:0; left:0; right:0; bottom:0;
-        background-color: white;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-size: 10vw;
-        font-weight: bold;
-        text-align: center;
-        padding: 0 20px;
-        animation: fadein 1.5s forwards;
-        z-index: 9999;
-        word-break: break-word;
-    }}
-    .fadeout {{
-        animation: fadeout 1.5s forwards;
-    }}
-    @keyframes fadein {{
-        from {{opacity: 0;}}
-        to {{opacity: 1;}}
-    }}
-    @keyframes fadeout {{
-        from {{opacity: 1;}}
-        to {{opacity: 0;}}
-    }}
-    </style>
-    <div class="fullscreen {'fadeout' if st.session_state.fade_out else ''}">
-        {st.session_state.welcome_message}
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(
+        f"""
+        <style>
+        .fullscreen {{
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 56px;
+            font-weight: bold;
+            animation: fadein 1.5s forwards;
+            z-index: 9999;
+            text-align: center;
+            padding: 0 20px;
+            word-break: break-word;
+        }}
+        .fadeout {{ animation: fadeout 1.5s forwards; }}
+        @keyframes fadein {{ from {{ opacity: 0; }} to {{ opacity: 1; }} }}
+        @keyframes fadeout {{ from {{ opacity: 1; }} to {{ opacity: 0; }} }}
+        </style>
+        <div class="fullscreen {'fadeout' if st.session_state['fade_out'] else ''}">
+            {st.session_state['welcome_message']}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-if st.session_state.show_welcome:
+if st.session_state["show_welcome"]:
     show_welcome_screen()
-    if not st.session_state.fade_out:
+    if not st.session_state["fade_out"]:
         time.sleep(2)
-        st.session_state.fade_out = True
+        st.session_state["fade_out"] = True
         st.experimental_rerun()
     else:
         time.sleep(1)
-        st.session_state.show_welcome = False
+        st.session_state["show_welcome"] = False
         st.experimental_rerun()
 
-# --- OpenAI クライアント初期化 ---
 try:
     client = OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
 except Exception as e:
@@ -180,8 +190,6 @@ except Exception as e:
     st.error(traceback.format_exc())
     st.stop()
 
-# --- FAQ読み込み ---
-@st.cache_data(show_spinner=False)
 def get_embedding(text):
     text = text.replace("\n", " ")
     try:
@@ -191,31 +199,35 @@ def get_embedding(text):
         st.error(f"埋め込み取得に失敗しました: {e}")
         return np.zeros(1536)
 
-@st.cache_data(show_spinner=False)
+@st.cache_data
 def load_faq(path="faq_all.csv"):
     df = pd.read_csv(path)
-    # 埋め込みが無ければ計算（初回のみ）
+    # embeddingはすでに含まれていれば読み込み済みの可能性もあるため、存在しなければ計算する
     if "embedding" not in df.columns:
         df["embedding"] = df["質問"].apply(lambda x: get_embedding(str(x)))
+    else:
+        # embeddingが文字列の場合は変換
+        if isinstance(df.loc[0, "embedding"], str):
+            df["embedding"] = df["embedding"].apply(lambda x: np.array(json.loads(x)))
     return df
 
 faq_df = load_faq()
 
-faq_common_path = "faq_common_jp.csv" if is_jp else "faq_common_en.csv"
+faq_common_path = "faq_common_jp.csv" if lang == "日本語" else "faq_common_en.csv"
 
-@st.cache_data(show_spinner=False)
+@st.cache_data
 def load_common_faq(path):
     try:
         df = pd.read_csv(path)
         return df
     except Exception as e:
         st.error(f"よくある質問ファイルの読み込みに失敗しました: {e}")
-        cols = ["質問", "回答"] if is_jp else ["question", "answer"]
+        # 日本語か英語かでカラムを分ける
+        cols = ["質問", "回答"] if lang == "日本語" else ["question", "answer"]
         return pd.DataFrame(columns=cols)
 
 common_faq_df = load_common_faq(faq_common_path)
 
-# --- 画面タイトルと画像 ---
 image_base64 = ""
 try:
     with open("LRADimg.png", "rb") as img_file:
@@ -223,29 +235,25 @@ try:
 except Exception:
     pass
 
-title_text = "LRADサポートチャット" if is_jp else "LRAD Support Chat"
+title_text = "LRADサポートチャット" if lang == "日本語" else "LRAD Support Chat"
 st.markdown(f"""
-<div style="display:flex; align-items:center;">
-    <img src="data:image/png;base64,{image_base64}" width="80" style="margin-right:10px;">
-    <h1 style="margin:0; font-size:32px;">{title_text}</h1>
-</div>
+    <div style="display:flex; align-items:center; margin-bottom: 10px;">
+        <img src="data:image/png;base64,{image_base64}" width="80" style="margin-right:10px;">
+        <h1 style="margin:0; font-size:32px;">{title_text}</h1>
+    </div>
 """, unsafe_allow_html=True)
 
 st.caption(WELCOME_CAPTION)
 
-# --- よくある質問エリア ---
-with st.expander("💡 よくある質問" if is_jp else "💡 FAQ", expanded=False):
+with st.expander("💡 よくある質問" if lang == "日本語" else "💡 FAQ", expanded=False):
     if not common_faq_df.empty:
-        search_label = "🔎 キーワードで検索" if is_jp else "🔎 Search keyword"
-        no_match_msg = "一致するFAQが見つかりませんでした。" if is_jp else "No matching FAQ found."
-        search_keyword = st.text_input(search_label, key="faq_search")
-        col_q = "質問" if is_jp else "question"
-        col_a = "回答" if is_jp else "answer"
+        search_label = "🔎 キーワードで検索" if lang == "日本語" else "🔎 Search keyword"
+        no_match_msg = "一致するFAQが見つかりませんでした。" if lang == "日本語" else "No matching FAQ found."
+        search_keyword = st.text_input(search_label, "")
+        col_q = "質問" if lang == "日本語" else "question"
+        col_a = "回答" if lang == "日本語" else "answer"
         if search_keyword:
-            df_filtered = common_faq_df[
-                common_faq_df[col_q].str.contains(search_keyword, na=False) |
-                common_faq_df[col_a].str.contains(search_keyword, na=False)
-            ]
+            df_filtered = common_faq_df[common_faq_df[col_q].str.contains(search_keyword, na=False) | common_faq_df[col_a].str.contains(search_keyword, na=False)]
             if df_filtered.empty:
                 st.info(no_match_msg)
             else:
@@ -260,9 +268,8 @@ with st.expander("💡 よくある質問" if is_jp else "💡 FAQ", expanded=Fa
                 st.markdown(f"A. {row[col_a]}")
                 st.markdown("---")
 
-# --- 類似質問検索 ---
-def find_top_similar(question, df, k=1):
-    q_vec = get_embedding(question)
+def find_top_similar(q, df, k=1):
+    q_vec = get_embedding(q)
     try:
         faq_vecs = np.stack(df["embedding"].to_numpy())
         sims = cosine_similarity([q_vec], faq_vecs)[0]
@@ -271,32 +278,25 @@ def find_top_similar(question, df, k=1):
     except Exception:
         return None, None
 
-# --- AI回答生成 ---
-def generate_response(user_question, ref_question, ref_answer):
+def generate_response(user_q, ref_q, ref_a):
     system_prompt = (
         "あなたはLRAD（遠赤外線電子熱分解装置）の専門家です。\n"
-        f"FAQ質問: {ref_question}\nFAQ回答: {ref_answer}\n"
+        f"FAQ質問: {ref_q}\nFAQ回答: {ref_a}\n"
         "この情報をもとに200文字以内で簡潔にユーザーの質問に答えてください。"
     )
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_question}
-    ]
+    messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_q}]
     try:
         res = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=messages,
-            temperature=0.3,
+            model="gpt-3.5-turbo", messages=messages, temperature=0.3
         )
         return res.choices[0].message.content.strip()
     except Exception as e:
         st.error(f"AI回答生成に失敗しました: {e}")
         return "申し訳ありません。回答の生成中にエラーが発生しました。"
 
-# --- チャットログCSV保存 ---
-def append_to_csv(question, answer, path="chat_logs.csv"):
+def append_to_csv(q, a, path="chat_logs.csv"):
     try:
-        df = pd.DataFrame([{"timestamp": pd.Timestamp.now().isoformat(), "question": question, "answer": answer}])
+        df = pd.DataFrame([{"timestamp": pd.Timestamp.now().isoformat(), "question": q, "answer": a}])
         if not os.path.exists(path):
             df.to_csv(path, index=False)
         else:
@@ -304,8 +304,7 @@ def append_to_csv(question, answer, path="chat_logs.csv"):
     except Exception as e:
         st.warning(f"CSVへの保存に失敗しました: {e}")
 
-# --- Google Sheets保存 ---
-def append_to_gsheet(question, answer):
+def append_to_gsheet(q, a):
     try:
         JST = timezone(timedelta(hours=9))
         timestamp = datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S")
@@ -321,32 +320,35 @@ def append_to_gsheet(question, answer):
         gc = gspread.authorize(creds)
         sh = gc.open_by_key(sheet_key)
         worksheet = sh.sheet1
-        worksheet.append_row([timestamp, question, answer], value_input_option="USER_ENTERED")
+        worksheet.append_row([timestamp, q, a], value_input_option="USER_ENTERED")
     except Exception as e:
         st.warning(f"Google Sheetsへの保存に失敗しました: {e}")
 
-# --- 入力バリデーション ---
 def is_valid_input(text):
+    # 入力バリデーション: 3〜300文字、記号率30%未満
     if not (3 <= len(text) <= 300):
         return False
-    symbol_count = sum(1 for c in text if not c.isalnum() and not c.isspace())
-    symbol_ratio = symbol_count / len(text)
-    if symbol_ratio > 0.3:
+    # 全角半角記号判定（例）
+    total_chars = len(text)
+    symbol_chars = len(re.findall(r"[!-/:-@[-`{-~、。・「」『』（）［］【】]", text))
+    if total_chars == 0:
+        return False
+    symbol_rate = symbol_chars / total_chars
+    if symbol_rate > 0.3:
         return False
     return True
 
-# --- チャット履歴表示 ---
+if "chat_log" not in st.session_state:
+    st.session_state.chat_log = []
+
+# 既存のチャット履歴表示
 for q, a in st.session_state.chat_log:
     st.chat_message("user").write(q)
     if a:
         st.chat_message("assistant").write(a)
 
-# --- チャット入力欄（画面下部に固定） ---
-def chat_input_area():
-    input_text = st.chat_input(CHAT_INPUT_PLACEHOLDER)
-    return input_text
-
-user_q = chat_input_area()
+# チャット入力欄は画面下部に固定表示される仕様（st.chat_input）
+user_q = st.chat_input(CHAT_INPUT_PLACEHOLDER)
 
 if user_q:
     if not is_valid_input(user_q):
@@ -355,7 +357,7 @@ if user_q:
         st.session_state.chat_log.append((user_q, None))
         st.experimental_rerun()
 
-# --- AI回答生成 ---
+# 最新の質問に対して回答が未設定なら回答生成
 if st.session_state.chat_log and st.session_state.chat_log[-1][1] is None:
     last_q = st.session_state.chat_log[-1][0]
     ref_q, ref_a = find_top_similar(last_q, faq_df)
