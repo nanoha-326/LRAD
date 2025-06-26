@@ -30,10 +30,12 @@ st.markdown(f"""
 WELCOME_MESSAGES = [
     "ようこそ！LRADチャットボットへ。",
     "あなたの疑問にお応えします。",
-    "LRAD専用チャットボットです。"
+    "こんにちは。LRAD専用のチャットボットです。"
 ] if lang == "日本語" else [
     "Welcome to the LRAD Chat Assistant.",
-    "Your questions, our answers."
+    "Your questions, our answers.",
+    "Hello. This is the dedicated chatbot for LRAD."
+
 ]
 
 LOGIN_TITLE = "ログイン" if lang == "日本語" else "Login"
