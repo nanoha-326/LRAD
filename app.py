@@ -231,10 +231,6 @@ def load_common_faq(path="faq_common.csv"):
         st.error(f"よくある質問ファイルの読み込みに失敗しました: {e}")
         return pd.DataFrame(columns=["質問", "回答"])
 
-st.write("📄 よくある質問の件数:", len(common_faq_df))
-st.dataframe(common_faq_df)
-
-
 common_faq_df = load_common_faq()
 
 with st.expander("💡 よくある質問", expanded=False):
