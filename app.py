@@ -196,17 +196,6 @@ try:
 except Exception:
     pass
 
-# --- タイトル表示 ---
-title_text = "LRADサポートチャット" if lang == "日本語" else "LRAD Support Chat"
-st.markdown(f"""
-<div class="app-title" style="display:flex; align-items:center;">
-    <img src="data:image/png;base64,{image_base64}" width="80" style="margin-right:10px;">
-    <h1>{title_text}</h1>
-</div>
-""", unsafe_allow_html=True)
-
-st.caption(WELCOME_CAPTION)
-
 # --- よくある質問（FAQ）展開 ---
 with st.expander("💡 よくある質問" if lang == "日本語" else "💡 FAQ", expanded=False):
     if not common_faq_df.empty:
