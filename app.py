@@ -83,7 +83,12 @@ def password_check():
 password_check()
 
 # --- ウェルカムメッセージ表示 ---
-def show_welcome_screen():
+if st.session_state.show_welcome:
+    if "welcome_start_time" not in st.session_state:
+        st.session_state.welcome_start_time = time.time()
+
+    elapsed = time.time() - st.session_state.welcome_start_time
+
     st.markdown(f"""
     <style>
     .fullscreen {{
@@ -100,34 +105,25 @@ def show_welcome_screen():
         text-align: center;
         padding: 0 20px;
         word-break: break-word;
+        opacity: {1 if elapsed < 3 else max(0, 1 - (elapsed - 3) / 1.5)};
+        transition: opacity 1.5s ease;
     }}
-    .fadeout {{ animation: fadeout 1.5s forwards; }}
-    @keyframes fadein {{ from {{ opacity: 0; }} to {{ opacity: 1; }} }}
-    @keyframes fadeout {{ from {{ opacity: 1; }} to {{ opacity: 0; }} }}
     </style>
-    <div class="fullscreen {'fadeout' if st.session_state.fade_out else ''}">
+    <div class="fullscreen">
         {st.session_state.welcome_message}
-    </div>""", unsafe_allow_html=True)
+    </div>
+    """, unsafe_allow_html=True)
 
-if st.session_state.show_welcome:
-    # 表示制御のためにstart_timeをセッションに持たせる（1回だけセット）
-    if "welcome_start_time" not in st.session_state:
-        st.session_state.welcome_start_time = time.time()
-        show_welcome_screen()
+    if elapsed < 4.5:
+        # 画面再描画のため少しだけ待って再実行
+        time.sleep(0.1)
         st.experimental_rerun()
     else:
-        elapsed = time.time() - st.session_state.welcome_start_time
-        show_welcome_screen()
-        if elapsed > 3.0 and not st.session_state.fade_out:
-            st.session_state.fade_out = True
-            st.experimental_rerun()
-        elif elapsed > 4.5 and st.session_state.fade_out:
-            # 表示終了
-            st.session_state.show_welcome = False
-            # 時間関係のキーはクリア
-            del st.session_state["welcome_start_time"]
-            st.experimental_rerun()
-        st.stop()
+        # ウェルカム表示を終了し状態リセット
+        st.session_state.show_welcome = False
+        del st.session_state["welcome_start_time"]
+        st.experimental_rerun()
+
 #######################################################################################
 try:
     client = OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
