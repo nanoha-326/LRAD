@@ -71,8 +71,13 @@ def password_check():
     if not st.session_state.authenticated:
         with st.form("login_form"):
             st.title(LOGIN_TITLE)
-            password = st.text_input("", type="password", placeholder=LOGIN_PASSWORD_LABEL)
-            submitted = st.form_submit_button("ログイン" if is_jp else "Login")
+            col1, col2 = st.columns([8, 1])  # 8:1の幅割合でカラム作成
+
+            with col1:
+                password = st.text_input("", type="password", placeholder=LOGIN_PASSWORD_LABEL)
+            with col2:
+                # アイコン付きのボタンを作る
+                submitted = st.form_submit_button("🔒")  # 鍵アイコンの絵文字を使う
             if submitted:
                 if password == CORRECT_PASSWORD:
                     st.session_state.authenticated = True
