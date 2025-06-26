@@ -43,16 +43,38 @@ font_size_options = list(font_size_map.keys())
 font_size = st.sidebar.selectbox("文字サイズを選択" if is_jp else "Select Font Size", font_size_options, index=1)
 selected_font_size = font_size_map[font_size]
 
-st.markdown(f"""
-<style>
-div[data-testid="stVerticalBlock"] * {{
-    font-size: {selected_font_size};
-}}
-section[data-testid="stSidebar"] * {{
-    font-size: {selected_font_size};
-}}
-</style>
-""", unsafe_allow_html=True)
+st.markdown(
+    f"""
+    <style>
+        div[data-testid="stVerticalBlock"] * {{ font-size: {selected_font_size}; }}
+        section[data-testid="stSidebar"] * {{ font-size: {selected_font_size}; }}
+        .login-container {{
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 80vh;
+            text-align: center;
+        }}
+        .login-button button {{
+            background-color: #333 !important;
+            color: white !important;
+            border: none;
+            padding: 0.5em 2em;
+            font-size: 1.2em;
+            border-radius: 4px;
+        }}
+        input[type="password"] {{
+            font-size: 1.2em;
+            padding: 0.5em;
+            width: 300px;
+            text-align: center;
+        }}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 
 # --- セッションステート初期化 ---
 if "authenticated" not in st.session_state:
