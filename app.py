@@ -24,6 +24,7 @@ font_size = st.sidebar.selectbox(font_size_label, font_size_options, index=1)
 font_size_map_jp = {"小": "14px", "中": "18px", "大": "24px"}
 font_size_map_en = {"Small": "14px", "Medium": "18px", "Large": "24px"}
 selected_font_size = font_size_map_jp[font_size] if lang == "日本語" else font_size_map_en[font_size]
+
 st.markdown(
     f"""
     <style>
@@ -34,11 +35,18 @@ st.markdown(
             justify-content: center;
             align-items: center;
             height: 100vh;
+            width: 100vw;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 9999;
+            background-color: white;
         }}
         .login-container {{
             text-align: center;
             max-width: 400px;
             width: 100%;
+            padding: 2em;
         }}
         .login-title {{
             font-size: 2em;
@@ -59,7 +67,11 @@ st.markdown(
             width: 100%;
             max-width: 300px;
         }}
-        input[type="password"]::-ms-reveal {{ display: block; position: absolute; right: 10px; }}
+        input[type="password"]::-ms-reveal, 
+        input[type="password"]::-webkit-credentials-auto-fill-button {{
+            right: 0.75em !important;
+            position: absolute !important;
+        }}
     </style>
     """,
     unsafe_allow_html=True
@@ -92,10 +104,11 @@ if "fade_out" not in st.session_state:
 
 def password_check():
     if not st.session_state["authenticated"]:
+        st.markdown('<div class="login-outer">', unsafe_allow_html=True)
         st.markdown('<div class="login-container">', unsafe_allow_html=True)
-        st.markdown(f"<h1>{LOGIN_TITLE}</h1>", unsafe_allow_html=True)
+        st.markdown(f'<div class="login-title">{LOGIN_TITLE}</div>', unsafe_allow_html=True)
         with st.form("login_form"):
-            password = st.text_input(label="", type="password", placeholder=LOGIN_PASSWORD_LABEL, label_visibility="collapsed")
+            password = st.text_input("", type="password", placeholder=LOGIN_PASSWORD_LABEL, label_visibility="collapsed")
             submitted = st.form_submit_button("ログイン")
             if submitted:
                 if password == CORRECT_PASSWORD:
@@ -106,10 +119,11 @@ def password_check():
                     st.experimental_rerun()
                 else:
                     st.error(LOGIN_ERROR_MSG)
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('</div></div>', unsafe_allow_html=True)
         st.stop()
 
 password_check()
+
 
 # --- ウェルカム画面表示 ---
 def show_welcome_screen():
