@@ -117,27 +117,19 @@ if "fade_out" not in st.session_state:
 
 def password_check():
     if not st.session_state["authenticated"]:
-        st.markdown('<div class="login-outer">', unsafe_allow_html=True)
-        st.markdown('<div class="login-container">', unsafe_allow_html=True)
-        st.markdown(f'<div class="login-title">{LOGIN_TITLE}</div>', unsafe_allow_html=True)
+        st.title("LRADチャットへログイン")
         with st.form("login_form"):
-            password = st.text_input(
-                label="",
-                type="password",
-                placeholder=LOGIN_PASSWORD_LABEL,
-                label_visibility="collapsed",
-            )
-            submitted = st.form_submit_button("ログイン", help="クリックしてログイン")
+            password = st.text_input("", type="password", placeholder="パスワードを入力してください", label_visibility="collapsed")
+            submitted = st.form_submit_button("ログイン")
             if submitted:
-                if password == CORRECT_PASSWORD:
+                if password == "mypassword":
                     st.session_state["authenticated"] = True
                     st.session_state["show_welcome"] = True
                     st.session_state["welcome_message"] = random.choice(WELCOME_MESSAGES)
                     st.session_state["fade_out"] = False
                     st.experimental_rerun()
                 else:
-                    st.error(LOGIN_ERROR_MSG)
-        st.markdown('</div></div>', unsafe_allow_html=True)
+                    st.error("パスワードが間違っています")
         st.stop()
 
 password_check()
