@@ -235,11 +235,26 @@ common_faq_df = load_common_faq()
 
 with st.expander("💡 よくある質問", expanded=False):
     if not common_faq_df.empty:
-        sample = common_faq_df.sample(n=min(3, len(common_faq_df)))  # 最大3件
-        for _, row in sample.iterrows():
-            st.markdown(f"**Q. {row['質問']}**")
-            st.markdown(f"A. {row['回答']}")
-            st.markdown("---")  # 区切り線（任意）
+        search_keyword = st.text_input("🔎 キーワードで検索", "")
+        if search_keyword:
+            keyword_df = common_faq_df[
+                common_faq_df["質問"].str.contains(search_keyword, case=False, na=False) |
+                common_faq_df["回答"].str.contains(search_keyword, case=False, na=False)
+            ]
+            if keyword_df.empty:
+                st.info("一致するFAQが見つかりませんでした。")
+            else:
+                for _, row in keyword_df.iterrows():
+                    st.markdown(f"**Q. {row['質問']}**")
+                    st.markdown(f"A. {row['回答']}")
+                    st.markdown("---")
+        else:
+            sample = common_faq_df.sample(n=min(3, len(common_faq_df)))
+            for _, row in sample.iterrows():
+                st.markdown(f"**Q. {row['質問']}**")
+                st.markdown(f"A. {row['回答']}")
+                st.markdown("---")
+
 
 
 def find_top_similar(q, df, k=1):
