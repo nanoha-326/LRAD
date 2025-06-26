@@ -240,23 +240,38 @@ with st.expander("💡 よくある質問" if lang == "日本語" else "💡 FAQ
         
         search_keyword = st.text_input(search_label, "")
         if search_keyword:
-            keyword_df = common_faq_df[
-                common_faq_df["質問"].str.contains(search_keyword, case=False, na=False) |
-                common_faq_df["回答"].str.contains(search_keyword, case=False, na=False)
-            ]
-            if keyword_df.empty:
+            if lang == "日本語":
+                df_filtered = common_faq_df[
+                    common_faq_df["質問"].str.contains(search_keyword, case=False, na=False) |
+                    common_faq_df["回答"].str.contains(search_keyword, case=False, na=False)
+                ]
+            else:
+                df_filtered = common_faq_df[
+                    common_faq_df["question"].str.contains(search_keyword, case=False, na=False) |
+                    common_faq_df["answer"].str.contains(search_keyword, case=False, na=False)
+                ]
+            if df_filtered.empty:
                 st.info(no_match_msg)
             else:
-                for _, row in keyword_df.iterrows():
-                    st.markdown(f"**Q. {row['質問']}**" if lang == "日本語" else f"**Q. {row['質問']}**")
-                    st.markdown(f"A. {row['回答']}" if lang == "日本語" else f"A. {row['回答']}")
+                for _, row in df_filtered.iterrows():
+                    if lang == "日本語":
+                        st.markdown(f"**Q. {row['質問']}**")
+                        st.markdown(f"A. {row['回答']}")
+                    else:
+                        st.markdown(f"**Q. {row['question']}**")
+                        st.markdown(f"A. {row['answer']}")
                     st.markdown("---")
         else:
             sample = common_faq_df.sample(n=min(3, len(common_faq_df)))
             for _, row in sample.iterrows():
-                st.markdown(f"**Q. {row['質問']}**" if lang == "日本語" else f"**Q. {row['質問']}**")
-                st.markdown(f"A. {row['回答']}" if lang == "日本語" else f"A. {row['回答']}")
+                if lang == "日本語":
+                    st.markdown(f"**Q. {row['質問']}**")
+                    st.markdown(f"A. {row['回答']}")
+                else:
+                    st.markdown(f"**Q. {row['question']}**")
+                    st.markdown(f"A. {row['answer']}")
                 st.markdown("---")
+
 
 
 
