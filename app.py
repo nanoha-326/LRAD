@@ -211,7 +211,8 @@ def load_faq(path):
 
 faq_path_jp = "faq_all_jp.csv"
 faq_path_en = "faq_all_en.csv"
-faq_df = load_faq(faq_path_jp if lang == "日本語" else faq_path_en)
+faq_df = load_faq("faq_all.csv")
+
 
 @st.cache_data
 def load_common_faq(path):
