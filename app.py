@@ -2,15 +2,20 @@ import streamlit as st
 from openai import OpenAI
 import pandas as pd
 import numpy as np
-import json, os, time, base64, traceback, random
+import base64
+import random
+import time
+import traceback
+import os
+import json
 from datetime import datetime, timezone, timedelta
 from sklearn.metrics.pairwise import cosine_similarity
 import gspread
 from google.oauth2.service_account import Credentials
 
-# --- 設定 ---
 st.set_page_config(page_title="LRADチャット", layout="centered")
 
+# --- 言語設定とサイドバーUI ---
 lang = st.sidebar.selectbox("言語を選択 / Select Language", ["日本語", "English"], index=0)
 
 sidebar_title = "⚙️ 設定" if lang == "日本語" else "⚙️ Settings"
@@ -18,76 +23,75 @@ font_size_label = "文字サイズを選択" if lang == "日本語" else "Select
 font_size_options = ["小", "中", "大"] if lang == "日本語" else ["Small", "Medium", "Large"]
 st.sidebar.title(sidebar_title)
 font_size = st.sidebar.selectbox(font_size_label, font_size_options, index=1)
+
 font_size_map_jp = {"小": "14px", "中": "18px", "大": "24px"}
 font_size_map_en = {"Small": "14px", "Medium": "18px", "Large": "24px"}
 selected_font_size = font_size_map_jp[font_size] if lang == "日本語" else font_size_map_en[font_size]
-st.markdown(f"""
-<style>
-    div[data-testid="stVerticalBlock"] * {{ font-size: {selected_font_size}; }}
-    section[data-testid="stSidebar"] * {{ font-size: {selected_font_size}; }}
-</style>""", unsafe_allow_html=True)
 
+st.markdown(
+    f"""
+    <style>
+        div[data-testid="stVerticalBlock"] * {{ font-size: {selected_font_size}; }}
+        section[data-testid="stSidebar"] * {{ font-size: {selected_font_size}; }}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# --- 定数・メッセージ ---
 WELCOME_MESSAGES = [
     "ようこそ！LRADチャットボットへ。",
     "あなたの疑問にお応えします。",
-    "こんにちは。LRAD専用のチャットボットです。"
+    "LRAD専用チャットボットです。"
 ] if lang == "日本語" else [
     "Welcome to the LRAD Chat Assistant.",
-    "Your questions, our answers.",
-    "Hello. This is the dedicated chatbot for LRAD."
-
+    "Your questions, our answers."
 ]
 
-LOGIN_TITLE = "ログイン" if lang == "日本語" else "Login"
-LOGIN_PASSWORD_LABEL = "パスワードを入力" if lang == "日本語" else "Enter Password"
+LOGIN_TITLE = "LRADチャットへログイン" if lang == "日本語" else "Login to LRAD Chat"
+LOGIN_PASSWORD_LABEL = "パスワードを入力してください" if lang == "日本語" else "Enter password"
 LOGIN_ERROR_MSG = "パスワードが間違っています" if lang == "日本語" else "Incorrect password"
-LOGIN_SITE_INFO = (
-    "LRADサポートチャットへログインしてください。"
-    if lang == "日本語" else
-    "Please login to access the LRAD Support Chat."
-)
 WELCOME_CAPTION = "※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。" if lang == "日本語" else "This chatbot responds based on FAQ and AI, but may not answer all questions accurately."
 CHAT_INPUT_PLACEHOLDER = "質問をどうぞ..." if lang == "日本語" else "Ask your question..."
-CORRECT_PASSWORD = "mypassword"
+CORRECT_PASSWORD = "mypassword"  # ここは適宜変更してください
 
-# --- セッション状態初期化 ---
+# --- セッションステート初期化 ---
 for key, default in {
     "authenticated": False,
     "show_welcome": False,
     "welcome_message": "",
-    "fade_out": False,
-    "chat_log": []
+    "welcome_start_time": None,
+    "chat_log": [],
 }.items():
     if key not in st.session_state:
         st.session_state[key] = default
 
-# --- パスワード認証 ---
+# --- ログイン画面 ---
 def password_check():
     if not st.session_state.authenticated:
         with st.form("login_form"):
             st.title(LOGIN_TITLE)
-            st.write(f"### {LOGIN_SITE_INFO}")  # 追加：ログイン説明をタイトルの下に表示
-            password = st.text_input(LOGIN_PASSWORD_LABEL, type="password")
-            submitted = st.form_submit_button(LOGIN_TITLE)
+            password = st.text_input(LOGIN_PASSWORD_LABEL, type="password", key="pw_input")
+            submitted = st.form_submit_button("Login" if lang == "English" else "ログイン")
             if submitted:
                 if password == CORRECT_PASSWORD:
                     st.session_state.authenticated = True
                     st.session_state.show_welcome = True
+                    st.session_state.welcome_start_time = time.time()
                     st.session_state.welcome_message = random.choice(WELCOME_MESSAGES)
-                    st.session_state.fade_out = False
-                    # ここで一旦画面再読み込み。show_welcomeを表示させるため。
                     st.experimental_rerun()
                 else:
                     st.error(LOGIN_ERROR_MSG)
         st.stop()
+
 password_check()
 
-# --- ウェルカムメッセージ表示 ---
-if st.session_state.show_welcome:
-    if "welcome_start_time" not in st.session_state:
-        st.session_state.welcome_start_time = time.time()
-
+# --- Welcome画面表示 ---
+def show_welcome_screen():
     elapsed = time.time() - st.session_state.welcome_start_time
+    opacity = 1
+    if elapsed > 3:
+        opacity = max(0, 1 - (elapsed - 3) / 1.5)
 
     st.markdown(f"""
     <style>
@@ -100,12 +104,11 @@ if st.session_state.show_welcome:
         align-items: center;
         font-size: 64px;
         font-weight: bold;
-        animation: fadein 1.5s forwards;
         z-index: 9999;
         text-align: center;
         padding: 0 20px;
         word-break: break-word;
-        opacity: {1 if elapsed < 3 else max(0, 1 - (elapsed - 3) / 1.5)};
+        opacity: {opacity};
         transition: opacity 1.5s ease;
     }}
     </style>
@@ -115,14 +118,16 @@ if st.session_state.show_welcome:
     """, unsafe_allow_html=True)
 
     if elapsed < 4.5:
-        # 画面再描画のため少しだけ待って再実行
         time.sleep(0.1)
         st.experimental_rerun()
     else:
-        # ウェルカム表示を終了し状態リセット
         st.session_state.show_welcome = False
-        del st.session_state["welcome_start_time"]
+        st.session_state.welcome_start_time = None
         st.experimental_rerun()
+
+if st.session_state.show_welcome:
+    show_welcome_screen()
+    st.stop()
 
 #######################################################################################
 try:
