@@ -236,10 +236,9 @@ common_faq_df = load_common_faq()
 
 with st.expander("💡 よくある質問", expanded=False):
     if not common_faq_df.empty:
-        sample = common_faq_df.sample(1)
+        sample = common_faq_df.sample(n=min(3, len(common_faq_df)))  # 最大3件まで
         for _, row in sample.iterrows():
-            st.markdown(f"**Q. {row['質問']}**\n\nA. {row['回答']}")
-
+            st.markdown(f"**Q. {row['質問']}**\n\nA. {row['回答']}\n")
 
 def find_top_similar(q, df, k=1):
     q_vec = get_embedding(q)
