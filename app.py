@@ -13,6 +13,7 @@ import time
 
 st.set_page_config(page_title="LRADチャット", layout="centered")
 
+# Step 1: 言語設定とサイドバーUI
 lang = st.sidebar.selectbox("言語を選択 / Select Language", ["日本語", "English"], index=0)
 
 sidebar_title = "⚙️ 設定" if lang == "日本語" else "⚙️ Settings"
@@ -25,12 +26,15 @@ font_size_map_jp = {"小": "14px", "中": "18px", "大": "24px"}
 font_size_map_en = {"Small": "14px", "Medium": "18px", "Large": "24px"}
 selected_font_size = font_size_map_jp[font_size] if lang == "日本語" else font_size_map_en[font_size]
 
-st.markdown(f"""
-<style>
-    div[data-testid="stVerticalBlock"] * {{ font-size: {selected_font_size}; }}
-    section[data-testid="stSidebar"] * {{ font-size: {selected_font_size}; }}
-</style>
-""", unsafe_allow_html=True)
+st.markdown(
+    f"""
+    <style>
+        div[data-testid="stVerticalBlock"] * {{ font-size: {selected_font_size}; }}
+        section[data-testid="stSidebar"] * {{ font-size: {selected_font_size}; }}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 WELCOME_MESSAGES = [
     "ようこそ！LRADチャットボットへ。",
@@ -118,15 +122,6 @@ if st.session_state["show_welcome"]:
         time.sleep(1)
         st.session_state["show_welcome"] = False
         st.experimental_rerun()
-
-# タイトル
-st.markdown("""
-<div style="display:flex; align-items:center;">
-    <h1 style="margin:0; font-size:36px;">LRADサポートチャット</h1>
-</div>
-""", unsafe_allow_html=True)
-
-st.caption(WELCOME_CAPTION)
 
 try:
     client = OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
