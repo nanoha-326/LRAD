@@ -144,8 +144,8 @@ except Exception as e:
 def get_embedding(text):
     text = text.replace("\n", " ")
     try:
-        response = client.embeddings.create(input=[text], model="text-embedding-3-small")
-        return response.data[0].embedding
+        res = openai.Embedding.create(input=[text], model="text-embedding-3-small")  # ✅ 埋め込み取得
+        return res['data'][0]['embedding']
     except Exception as e:
         st.error(f"埋め込み取得に失敗しました: {e}")
         return np.zeros(1536)
