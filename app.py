@@ -130,6 +130,15 @@ except Exception as e:
     st.error(traceback.format_exc())
     st.stop()
 
+# --- ユーザー入力のバリデーション関数（ここで定義） ---
+def is_valid_input(text):
+    if not (3 <= len(text) <= 300):
+        return False
+    symbol_count = sum(1 for c in text if not re.match(r'[a-zA-Z0-9ぁ-んァ-ン一-龥]', c))
+    if symbol_count / max(1, len(text)) > 0.3:
+        return False
+    return True
+
 def get_embedding(text):
     text = text.replace("\n", " ")
     try:
@@ -166,6 +175,7 @@ try:
         image_base64 = base64.b64encode(img_file.read()).decode()
 except Exception:
     pass
+
 
 title_text = "LRADサポートチャット" if lang == "日本語" else "LRAD Support Chat"
 st.markdown(f"""
