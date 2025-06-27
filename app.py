@@ -1,5 +1,5 @@
 import streamlit as st
-from openai import OpenAI
+import openai
 import pandas as pd
 import numpy as np
 import re, os, json, unicodedata, base64
@@ -26,15 +26,10 @@ font_size_map_jp = {"小": "14px", "中": "18px", "大": "24px"}
 font_size_map_en = {"Small": "14px", "Medium": "18px", "Large": "24px"}
 selected_font_size = font_size_map_jp[font_size] if lang == "日本語" else font_size_map_en[font_size]
 
-# 全体の文字サイズを調整（サイドバーの選択に応じて）
 st.markdown(f"""
 <style>
-    div[data-testid="stVerticalBlock"] * {{
-        font-size: {selected_font_size} !important;
-    }}
-    section[data-testid="stSidebar"] * {{
-        font-size: {selected_font_size} !important;
-    }}
+    div[data-testid="stVerticalBlock"] * {{ font-size: {selected_font_size} !important; }}
+    section[data-testid="stSidebar"] * {{ font-size: {selected_font_size} !important; }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -46,7 +41,7 @@ try:
 except Exception:
     pass
 
-# --- タイトル表示（h1にインラインスタイルでフォントサイズ指定を追加）---
+# --- タイトル表示 ---
 title_text = "LRADサポートチャット" if lang == "日本語" else "LRAD Support Chat"
 st.markdown(f"""
 <div class="app-title" style="display:flex; align-items:center;">
@@ -55,9 +50,6 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# 以下略（元のコードのまま）
-
-# --- 定数・メッセージ ---
 WELCOME_MESSAGES = [
     "ようこそ！LRADチャットボットへ。",
     "あなたの疑問にお応えします。",
@@ -74,7 +66,6 @@ WELCOME_CAPTION = "※このチャットボットはFAQとAIをもとに応答�
 CHAT_INPUT_PLACEHOLDER = "質問をどうぞ..." if lang == "日本語" else "Ask your question..."
 CORRECT_PASSWORD = "mypassword"
 
-# --- セッション状態初期化 ---
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
 if "show_welcome" not in st.session_state:
@@ -86,7 +77,6 @@ if "fade_out" not in st.session_state:
 if "chat_log" not in st.session_state:
     st.session_state["chat_log"] = []
 
-# --- ログイン認証処理 ---
 def password_check():
     if not st.session_state["authenticated"]:
         with st.form("login_form"):
@@ -106,10 +96,8 @@ def password_check():
 
 password_check()
 
-# --- ウェルカム画面表示 ---
 def show_welcome_screen():
-    st.markdown(
-        f"""
+    st.markdown(f"""
         <style>
         .fullscreen {{
             position: fixed;
@@ -133,9 +121,7 @@ def show_welcome_screen():
         <div class="fullscreen {'fadeout' if st.session_state['fade_out'] else ''}">
             {st.session_state['welcome_message']}
         </div>
-        """,
-        unsafe_allow_html=True,
-    )
+        """, unsafe_allow_html=True)
 
 if st.session_state["show_welcome"]:
     show_welcome_screen()
@@ -148,25 +134,22 @@ if st.session_state["show_welcome"]:
         st.session_state["show_welcome"] = False
         st.experimental_rerun()
 
-# --- OpenAI APIクライアント初期化 ---
 try:
-    client = OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
+    client = openai.OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
 except Exception as e:
     st.error("OpenAI APIキーの取得に失敗しました。st.secretsの設定を確認してください。")
     st.error(traceback.format_exc())
     st.stop()
 
-# --- 埋め込み取得関数 ---
 def get_embedding(text):
     text = text.replace("\n", " ")
     try:
-        res = client.embeddings.create(input=[text], model="text-embedding-3-small")
-        return res.data[0].embedding
+        response = client.embeddings.create(input=[text], model="text-embedding-3-small")
+        return response.data[0].embedding
     except Exception as e:
         st.error(f"埋め込み取得に失敗しました: {e}")
         return np.zeros(1536)
 
-# --- FAQデータ読み込み ---
 @st.cache_data
 def load_faq(path="faq_all.csv"):
     df = pd.read_csv(path)
@@ -174,7 +157,6 @@ def load_faq(path="faq_all.csv"):
     return df
 
 faq_df = load_faq()
-
 faq_common_path = "faq_common_jp.csv" if lang == "日本語" else "faq_common_en.csv"
 
 @st.cache_data
@@ -188,15 +170,6 @@ def load_common_faq(path):
 
 common_faq_df = load_common_faq(faq_common_path)
 
-# --- ロゴ画像読み込み ---
-image_base64 = ""
-try:
-    with open("LRADimg.png", "rb") as img_file:
-        image_base64 = base64.b64encode(img_file.read()).decode()
-except Exception:
-    pass
-
-# --- よくある質問（FAQ）展開 ---
 with st.expander("💡 よくある質問" if lang == "日本語" else "💡 FAQ", expanded=False):
     if not common_faq_df.empty:
         search_label = "🔎 キーワードで検索" if lang == "日本語" else "🔎 Search keyword"
@@ -220,7 +193,6 @@ with st.expander("💡 よくある質問" if lang == "日本語" else "💡 FAQ
                 st.markdown(f"A. {row[col_a]}")
                 st.markdown("---")
 
-# --- 類似質問検索 ---
 def find_top_similar(q, df, k=1):
     q_vec = get_embedding(q)
     try:
@@ -231,7 +203,6 @@ def find_top_similar(q, df, k=1):
     except Exception:
         return None, None
 
-# --- AI回答生成 ---
 def generate_response(user_q, ref_q, ref_a):
     system_prompt = (
         "あなたはLRAD（遠赤外線電子熱分解装置）の専門家です。\n"
@@ -248,7 +219,6 @@ def generate_response(user_q, ref_q, ref_a):
         st.error(f"AI回答生成に失敗しました: {e}")
         return "申し訳ありません。回答の生成中にエラーが発生しました。"
 
-# --- チャットログCSV保存 ---
 def append_to_csv(q, a, path="chat_logs.csv"):
     try:
         df = pd.DataFrame([{"timestamp": pd.Timestamp.now().isoformat(), "question": q, "answer": a}])
@@ -259,7 +229,6 @@ def append_to_csv(q, a, path="chat_logs.csv"):
     except Exception as e:
         st.warning(f"CSVへの保存に失敗しました: {e}")
 
-# --- チャットログGoogle Sheets保存 ---
 def append_to_gsheet(q, a):
     try:
         JST = timezone(timedelta(hours=9))
@@ -280,18 +249,14 @@ def append_to_gsheet(q, a):
     except Exception as e:
         st.warning(f"Google Sheetsへの保存に失敗しました: {e}")
 
-# --- ユーザー入力のバリデーション関数 ---
 def is_valid_input(text):
-    # 3～300文字、記号率30%未満の簡単なチェック例
     if not (3 <= len(text) <= 300):
         return False
-    # 記号（英数字・かな以外）率計算
     symbol_count = sum(1 for c in text if not re.match(r'[a-zA-Z0-9ぁ-んァ-ン一-龥]', c))
     if symbol_count / max(1, len(text)) > 0.3:
         return False
     return True
 
-# --- チャット画面表示・動作 ---
 for q, a in st.session_state.chat_log:
     st.chat_message("user").write(q)
     if a:
