@@ -135,7 +135,7 @@ if st.session_state["show_welcome"]:
         st.experimental_rerun()
 
 try:
-    client = openai.OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
+    openai.api_key = st.secrets.OpenAIAPI.openai_api_key
 except Exception as e:
     st.error("OpenAI APIキーの取得に失敗しました。st.secretsの設定を確認してください。")
     st.error(traceback.format_exc())
