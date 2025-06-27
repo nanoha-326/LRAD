@@ -1,5 +1,5 @@
 import streamlit as st
-import openai
+from openai import OpenAI
 import pandas as pd
 import numpy as np
 import re, os, json, unicodedata, base64
@@ -13,7 +13,7 @@ import time
 
 st.set_page_config(page_title="LRADチャット", layout="centered")
 
-# --- サイドバー：言語と文字サイズ設定 ---
+# Step 1: 言語設定とサイドバーUI
 lang = st.sidebar.selectbox("言語を選択 / Select Language", ["日本語", "English"], index=0)
 
 sidebar_title = "⚙️ 設定" if lang == "日本語" else "⚙️ Settings"
@@ -26,29 +26,15 @@ font_size_map_jp = {"小": "14px", "中": "18px", "大": "24px"}
 font_size_map_en = {"Small": "14px", "Medium": "18px", "Large": "24px"}
 selected_font_size = font_size_map_jp[font_size] if lang == "日本語" else font_size_map_en[font_size]
 
-st.markdown(f"""
-<style>
-    div[data-testid="stVerticalBlock"] * {{ font-size: {selected_font_size} !important; }}
-    section[data-testid="stSidebar"] * {{ font-size: {selected_font_size} !important; }}
-</style>
-""", unsafe_allow_html=True)
-
-# --- ロゴ画像読み込み ---
-image_base64 = ""
-try:
-    with open("LRADimg.png", "rb") as img_file:
-        image_base64 = base64.b64encode(img_file.read()).decode()
-except Exception:
-    pass
-
-# --- タイトル表示 ---
-title_text = "LRADサポートチャット" if lang == "日本語" else "LRAD Support Chat"
-st.markdown(f"""
-<div class="app-title" style="display:flex; align-items:center;">
-    <img src="data:image/png;base64,{image_base64}" width="80" style="margin-right:10px;">
-    <h1 style="font-size:48px; margin:0;">{title_text}</h1>
-</div>
-""", unsafe_allow_html=True)
+st.markdown(
+    f"""
+    <style>
+        div[data-testid="stVerticalBlock"] * {{ font-size: {selected_font_size}; }}
+        section[data-testid="stSidebar"] * {{ font-size: {selected_font_size}; }}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 WELCOME_MESSAGES = [
     "ようこそ！LRADチャットボットへ。",
@@ -74,14 +60,14 @@ if "welcome_message" not in st.session_state:
     st.session_state["welcome_message"] = ""
 if "fade_out" not in st.session_state:
     st.session_state["fade_out"] = False
-if "chat_log" not in st.session_state:
-    st.session_state["chat_log"] = []
+if "chat_history" not in st.session_state:
+    st.session_state["chat_history"] = []
 
 def password_check():
     if not st.session_state["authenticated"]:
         with st.form("login_form"):
             st.title(LOGIN_TITLE)
-            password = st.text_input("", type="password", placeholder=LOGIN_PASSWORD_LABEL)
+            password = st.text_input(LOGIN_PASSWORD_LABEL, type="password")
             submitted = st.form_submit_button(LOGIN_TITLE)
             if submitted:
                 if password == CORRECT_PASSWORD:
@@ -97,7 +83,8 @@ def password_check():
 password_check()
 
 def show_welcome_screen():
-    st.markdown(f"""
+    st.markdown(
+        f"""
         <style>
         .fullscreen {{
             position: fixed;
@@ -121,7 +108,9 @@ def show_welcome_screen():
         <div class="fullscreen {'fadeout' if st.session_state['fade_out'] else ''}">
             {st.session_state['welcome_message']}
         </div>
-        """, unsafe_allow_html=True)
+        """,
+        unsafe_allow_html=True,
+    )
 
 if st.session_state["show_welcome"]:
     show_welcome_screen()
@@ -135,7 +124,7 @@ if st.session_state["show_welcome"]:
         st.experimental_rerun()
 
 try:
-    openai.api_key = st.secrets.OpenAIAPI.openai_api_key
+    client = OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
 except Exception as e:
     st.error("OpenAI APIキーの取得に失敗しました。st.secretsの設定を確認してください。")
     st.error(traceback.format_exc())
@@ -144,8 +133,8 @@ except Exception as e:
 def get_embedding(text):
     text = text.replace("\n", " ")
     try:
-        res = openai.Embedding.create(input=[text], model="text-embedding-3-small")  # ✅ 埋め込み取得
-        return res['data'][0]['embedding']
+        res = client.embeddings.create(input=[text], model="text-embedding-3-small")
+        return res.data[0].embedding
     except Exception as e:
         st.error(f"埋め込み取得に失敗しました: {e}")
         return np.zeros(1536)
@@ -157,6 +146,7 @@ def load_faq(path="faq_all.csv"):
     return df
 
 faq_df = load_faq()
+
 faq_common_path = "faq_common_jp.csv" if lang == "日本語" else "faq_common_en.csv"
 
 @st.cache_data
@@ -169,6 +159,23 @@ def load_common_faq(path):
         return pd.DataFrame(columns=["質問", "回答"] if lang == "日本語" else ["question", "answer"])
 
 common_faq_df = load_common_faq(faq_common_path)
+
+image_base64 = ""
+try:
+    with open("LRADimg.png", "rb") as img_file:
+        image_base64 = base64.b64encode(img_file.read()).decode()
+except Exception:
+    pass
+
+title_text = "LRADサポートチャット" if lang == "日本語" else "LRAD Support Chat"
+st.markdown(f"""
+    <div style="display:flex; align-items:center;">
+        <img src="data:image/png;base64,{image_base64}" width="80" style="margin-right:10px;">
+        <h1 style="margin:0; font-size:32px;">{title_text}</h1>
+    </div>
+""", unsafe_allow_html=True)
+
+st.caption(WELCOME_CAPTION)
 
 with st.expander("💡 よくある質問" if lang == "日本語" else "💡 FAQ", expanded=False):
     if not common_faq_df.empty:
@@ -229,6 +236,7 @@ def append_to_csv(q, a, path="chat_logs.csv"):
     except Exception as e:
         st.warning(f"CSVへの保存に失敗しました: {e}")
 
+
 def append_to_gsheet(q, a):
     try:
         JST = timezone(timedelta(hours=9))
@@ -249,13 +257,9 @@ def append_to_gsheet(q, a):
     except Exception as e:
         st.warning(f"Google Sheetsへの保存に失敗しました: {e}")
 
-def is_valid_input(text):
-    if not (3 <= len(text) <= 300):
-        return False
-    symbol_count = sum(1 for c in text if not re.match(r'[a-zA-Z0-9ぁ-んァ-ン一-龥]', c))
-    if symbol_count / max(1, len(text)) > 0.3:
-        return False
-    return True
+
+if "chat_log" not in st.session_state:
+    st.session_state.chat_log = []
 
 for q, a in st.session_state.chat_log:
     st.chat_message("user").write(q)
@@ -266,7 +270,7 @@ user_q = st.chat_input(CHAT_INPUT_PLACEHOLDER)
 
 if user_q:
     if not is_valid_input(user_q):
-        st.warning("入力が不正です。3〜300文字以内にしてください。")
+        st.warning("入力が不正です。3〜300文字、記号率30%未満にしてください。")
     else:
         st.session_state.chat_log.append((user_q, None))
         st.experimental_rerun()
