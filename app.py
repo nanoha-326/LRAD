@@ -204,6 +204,7 @@ with st.expander("💡 よくある質問" if lang == "日本語" else "💡 FAQ
                     st.markdown(f"A. {row[a_col]}")
                     st.markdown("---")
 
+
 # --- 類似質問検索 ---
 def find_top_similar(q, df, k=1):
     q_vec = get_embedding(q)
