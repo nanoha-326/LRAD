@@ -226,12 +226,12 @@ def find_top_similar(q, df, k=1):
 
 # --- AI回答生成 ---
 def generate_response(user_q, ref_q, ref_a):
-    system_prompt = f"""あなたはLRAD（遠赤外線電子熱分解装置）の専門家です。
-もし質問が「見積もり」や「問い合わせ先」に関するものであれば、必ず以下のリンクを案内してください：
-https://example.com/contact
-FAQ質問: {ref_q}
-FAQ回答: {ref_a}
-この情報をもとに200文字以内で簡潔にユーザーの質問に答えてください。"""
+    system_prompt = (
+        "あなたはLRAD（遠赤外線電子熱分解装置）の専門家です。\n"
+        "もし質問が「見積もり」や「問い合わせ先」に関するものであれば、必ず右のリンクを案内してください：https://imugenos.com/pages/contact\n"
+        f"FAQ質問: {ref_q}\nFAQ回答: {ref_a}\n"
+        "この情報をもとに200文字以内で簡潔にユーザーの質問に答えてください。"
+    )
     return system_prompt
 
     messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_q}]
