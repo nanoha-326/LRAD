@@ -216,13 +216,6 @@ with st.expander("💡 よくある質問" if lang == "日本語" else "💡 FAQ
             st.markdown("---")
 
 
-        if selected_categories:
-            filtered_df = common_faq_df[common_faq_df[cat_col].apply(lambda x: any(tag.strip() in x.split(',') for tag in selected_categories))]
-            for _, row in filtered_df.iterrows():
-                st.markdown(f"**Q. {row[q_col]}**")
-                st.markdown(f"A. {row[a_col]}")
-                st.markdown("---")
-
 
 # --- 類似質問検索 ---
 def find_top_similar(q, df, k=1):
