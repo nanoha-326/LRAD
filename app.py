@@ -195,30 +195,16 @@ with st.expander("💡 よくある質問" if lang == "日本語" else "💡 FAQ
         cat_col = "カテゴリ" if lang == "日本語" else "category"
         q_col = "質問" if lang == "日本語" else "question"
         a_col = "回答" if lang == "日本語" else "answer"
-        
         categories = sorted(set(cat.strip() for sublist in common_faq_df[cat_col].dropna().str.split(',') for cat in sublist))
+        select_placeholder = "カテゴリを選択してください" if lang == "日本語" else "Choose categories"
+        selected_tags = st.multiselect("", categories, placeholder=select_placeholder)
+        if selected_tags:
+            filtered_df = common_faq_df[common_faq_df[cat_col].apply(lambda x: any(tag.strip() in x.split(',') for tag in selected_tags))]
+            for _, row in filtered_df.iterrows():
+                st.markdown(f"**Q. {row[q_col]}**")
+                st.markdown(f"A. {row[a_col]}")
+                st.markdown("---")
 
-        all_label = "すべて" if lang == "日本語" else "All"
-        categories = [all_label] + categories
-
-        # 空白の選択肢を先頭に追加して初期値は空白に
-        select_options = [""] + categories
-        selected_category = st.selectbox(
-            "カテゴリを選択" if lang == "日本語" else "Select Category", 
-            select_options, 
-            index=0,
-            format_func=lambda x: x if x != "" else ("カテゴリを選択してください" if lang == "日本語" else "Choose category")
-        )
-
-if selected_category == "" or selected_category == all_label:
-    selected_df = common_faq_df
-else:
-    selected_df = common_faq_df[common_faq_df[cat_col].str.contains(rf'(^|,\s*){re.escape(selected_category)}(\s*,|$)', na=False)]
-
-for _, row in selected_df.iterrows():
-    st.markdown(f"**Q. {row[q_col]}**")
-    st.markdown(f"A. {row[a_col]}")
-    st.markdown("---")
 
 
 
