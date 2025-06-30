@@ -196,12 +196,13 @@ with st.expander("💡 よくある質問" if lang == "日本語" else "💡 FAQ
         q_col = "質問" if lang == "日本語" else "question"
         a_col = "回答" if lang == "日本語" else "answer"
         categories = sorted(set(cat for sublist in common_faq_df[cat_col].dropna().str.split(',') for cat in sublist))
-        selected_category = st.selectbox("カテゴリを選択" if lang == "日本語" else "Select Category", categories)
-        selected_df = common_faq_df[common_faq_df[cat_col].str.contains(selected_category, na=False)]
-        for _, row in selected_df.iterrows():
-            st.markdown(f"**Q. {row[q_col]}**")
-            st.markdown(f"A. {row[a_col]}")
-            st.markdown("---")
+        for category in categories:
+            with st.expander(category.strip(), expanded=False):
+                selected_df = common_faq_df[common_faq_df[cat_col].str.contains(category.strip(), na=False)]
+                for _, row in selected_df.iterrows():
+                    st.markdown(f"**Q. {row[q_col]}**")
+                    st.markdown(f"A. {row[a_col]}")
+                    st.markdown("---")
 
 # --- 類似質問検索 ---
 def find_top_similar(q, df, k=1):
