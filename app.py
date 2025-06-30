@@ -198,17 +198,17 @@ with st.expander("💡 よくある質問" if lang == "日本語" else "💡 FAQ
 
         categories = sorted(set(cat.strip() for sublist in common_faq_df[cat_col].dropna().str.split(',') for cat in sublist))
         all_label = "すべて" if lang == "日本語" else "All"
-        categories = [all_label] + categories
+        categories = ["", all_label] + categories
 
-        select_placeholder = "カテゴリを選択してください" if lang == "日本語" else "Choose categories"
-        selected_tags = st.multiselect("", categories, placeholder=select_placeholder)
+        select_placeholder = "カテゴリを選択してください" if lang == "日本語" else "Choose category"
+        selected_tag = st.selectbox("", categories, index=0, placeholder=select_placeholder)
 
-        if selected_tags:
-            if all_label in selected_tags:
+        if selected_tag:
+            if selected_tag == all_label:
                 filtered_df = common_faq_df
             else:
                 filtered_df = common_faq_df[common_faq_df[cat_col].apply(
-                    lambda x: any(tag.strip() in x.split(',') for tag in selected_tags if isinstance(x, str)))]
+                    lambda x: selected_tag in [cat.strip() for cat in str(x).split(',')])]
 
             for _, row in filtered_df.iterrows():
                 st.markdown(f"**Q. {row[q_col]}**")
