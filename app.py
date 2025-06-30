@@ -176,6 +176,24 @@ st.markdown(f"""
 
 st.caption(WELCOME_CAPTION)
 
+st.markdown(
+    """
+    <style>
+    /* よくある質問のタイトル周りの余白調整 */
+    div[data-testid="stExpander"] > div > div > div:first-child {
+        margin-bottom: 4px !important;
+        padding-bottom: 4px !important;
+    }
+    /* カテゴリ選択フォームの余白調整 */
+    div[data-testid="stMultiSelect"] {
+        margin-top: 4px !important;
+        margin-bottom: 4px !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 # FAQファイル読み込みとカテゴリUIへの変更
 faq_common_path = "faq_common_jp.csv" if lang == "日本語" else "faq_common_en.csv"
 
