@@ -175,7 +175,6 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 st.caption(WELCOME_CAPTION)
-
 # FAQファイル読み込みとカテゴリUIへの変更
 faq_common_path = "faq_common_jp.csv" if lang == "日本語" else "faq_common_en.csv"
 
@@ -203,6 +202,18 @@ with st.expander("💡 よくある質問" if lang == "日本語" else "💡 FAQ
         select_placeholder = "カテゴリを選択してください" if lang == "日本語" else "Choose a category"
         selected_tag = st.selectbox(label=" ", options=categories, index=0, format_func=lambda x: x if x else select_placeholder)
 
+        # 選択肢のプレースホルダー（空文字）の表示色を薄くするCSS
+        st.markdown(
+            """
+            <style>
+            div[data-baseweb="select"] > div > div:first-child {
+                color: #999999 !important;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
+
         if selected_tag:
             if selected_tag == all_label:
                 filtered_df = common_faq_df
@@ -214,6 +225,7 @@ with st.expander("💡 よくある質問" if lang == "日本語" else "💡 FAQ
                 st.markdown(f"**Q. {row[q_col]}**")
                 st.markdown(f"A. {row[a_col]}")
                 st.markdown("---")
+
 
 # --- 類似質問検索 ---
 def find_top_similar(q, df, k=1):
