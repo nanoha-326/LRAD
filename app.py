@@ -176,42 +176,6 @@ st.markdown(f"""
 
 st.caption(WELCOME_CAPTION)
 
-st.markdown(
-    """
-    <style>
-    /* よくある質問のタイトル周りの余白調整 */
-    div[data-testid="stExpander"] > div > div > div:first-child {
-        margin-bottom: 4px !important;
-        padding-bottom: 4px !important;
-    }
-    /* カテゴリ選択フォームの余白調整 */
-    div[data-testid="stMultiSelect"] {
-        margin-top: 4px !important;
-        margin-bottom: 4px !important;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-st.markdown(
-    """
-    <style>
-    /* セレクトボックスのフォーカス時の枠線色を変更 */
-    div[data-testid="stSelectbox"] > div > div > div[tabindex="0"]:focus {
-        outline: 2px solid #0078D7 !important;  /* ここで色を指定（青色例） */
-        box-shadow: 0 0 0 2px #0078D7 !important;
-    }
-
-    /* マルチセレクトのフォーカス時の枠線色 */
-    div[data-testid="stMultiSelect"] > div > div > div[tabindex="0"]:focus {
-        outline: 2px solid #0078D7 !important;
-        box-shadow: 0 0 0 2px #0078D7 !important;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
 # FAQファイル読み込みとカテゴリUIへの変更
 faq_common_path = "faq_common_jp.csv" if lang == "日本語" else "faq_common_en.csv"
 
