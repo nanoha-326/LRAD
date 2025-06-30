@@ -1,5 +1,5 @@
 import streamlit as st
-from openai import OpenAI
+import openai
 import pandas as pd
 import numpy as np
 import re, os, json, unicodedata, base64
@@ -60,8 +60,8 @@ if "welcome_message" not in st.session_state:
     st.session_state["welcome_message"] = ""
 if "fade_out" not in st.session_state:
     st.session_state["fade_out"] = False
-if "chat_history" not in st.session_state:
-    st.session_state["chat_history"] = []
+if "chat_log" not in st.session_state:
+    st.session_state["chat_log"] = []
 
 def password_check():
     if not st.session_state["authenticated"]:
@@ -123,14 +123,15 @@ if st.session_state["show_welcome"]:
         st.session_state["show_welcome"] = False
         st.experimental_rerun()
 
+# --- OpenAI API設定 ---
 try:
-    client = OpenAI(api_key=st.secrets.OpenAIAPI.openai_api_key)
+    openai.api_key = st.secrets["OpenAIAPI"]["openai_api_key"]
 except Exception as e:
-    st.error("OpenAI APIキーの取得に失敗しました。st.secretsの設定を確認してください。")
+    st.error("OpenAI APIキーの設定に失敗しました。st.secretsの設定を確認してください。")
     st.error(traceback.format_exc())
     st.stop()
 
-# --- ユーザー入力のバリデーション関数（ここで定義） ---
+# --- 入力チェック関数 ---
 def is_valid_input(text):
     if not (3 <= len(text) <= 300):
         return False
@@ -139,15 +140,17 @@ def is_valid_input(text):
         return False
     return True
 
+# --- 埋め込み取得 ---
 def get_embedding(text):
     text = text.replace("\n", " ")
     try:
-        res = client.embeddings.create(input=[text], model="text-embedding-3-small")
+        res = openai.embeddings.create(input=[text], model="text-embedding-3-small")
         return res.data[0].embedding
     except Exception as e:
         st.error(f"埋め込み取得に失敗しました: {e}")
         return np.zeros(1536)
 
+# --- FAQ読み込みと埋め込み計算 ---
 @st.cache_data
 def load_faq(path="faq_all.csv"):
     df = pd.read_csv(path)
@@ -156,6 +159,7 @@ def load_faq(path="faq_all.csv"):
 
 faq_df = load_faq()
 
+# --- よくある質問 ---
 faq_common_path = "faq_common_jp.csv" if lang == "日本語" else "faq_common_en.csv"
 
 @st.cache_data
@@ -164,7 +168,7 @@ def load_common_faq(path):
         df = pd.read_csv(path)
         return df
     except Exception as e:
-        st.error(f"よくある質問ファイルの読み込みに失敗しました: {e}")
+        st.error(f"FAQ読み込み失敗: {e}")
         return pd.DataFrame(columns=["質問", "回答"] if lang == "日本語" else ["question", "answer"])
 
 common_faq_df = load_common_faq(faq_common_path)
@@ -175,7 +179,6 @@ try:
         image_base64 = base64.b64encode(img_file.read()).decode()
 except Exception:
     pass
-
 
 title_text = "LRADサポートチャット" if lang == "日本語" else "LRAD Support Chat"
 st.markdown(f"""
@@ -210,6 +213,7 @@ with st.expander("💡 よくある質問" if lang == "日本語" else "💡 FAQ
                 st.markdown(f"A. {row[col_a]}")
                 st.markdown("---")
 
+# --- 類似質問検索 ---
 def find_top_similar(q, df, k=1):
     q_vec = get_embedding(q)
     try:
@@ -220,6 +224,7 @@ def find_top_similar(q, df, k=1):
     except Exception:
         return None, None
 
+# --- AI回答生成 ---
 def generate_response(user_q, ref_q, ref_a):
     system_prompt = (
         "あなたはLRAD（遠赤外線電子熱分解装置）の専門家です。\n"
@@ -228,7 +233,7 @@ def generate_response(user_q, ref_q, ref_a):
     )
     messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_q}]
     try:
-        res = client.chat.completions.create(
+        res = openai.chat.completions.create(
             model="gpt-3.5-turbo", messages=messages, temperature=0.3
         )
         return res.choices[0].message.content.strip()
@@ -236,6 +241,7 @@ def generate_response(user_q, ref_q, ref_a):
         st.error(f"AI回答生成に失敗しました: {e}")
         return "申し訳ありません。回答の生成中にエラーが発生しました。"
 
+# --- ログ保存処理（省略可能） ---
 def append_to_csv(q, a, path="chat_logs.csv"):
     try:
         df = pd.DataFrame([{"timestamp": pd.Timestamp.now().isoformat(), "question": q, "answer": a}])
@@ -244,8 +250,7 @@ def append_to_csv(q, a, path="chat_logs.csv"):
         else:
             df.to_csv(path, mode="a", header=False, index=False)
     except Exception as e:
-        st.warning(f"CSVへの保存に失敗しました: {e}")
-
+        st.warning(f"CSV保存失敗: {e}")
 
 def append_to_gsheet(q, a):
     try:
@@ -255,22 +260,16 @@ def append_to_gsheet(q, a):
         service_account_info = st.secrets["GoogleSheets"]["service_account_info"]
         if isinstance(service_account_info, str):
             service_account_info = json.loads(service_account_info)
-        scopes = [
-            "https://www.googleapis.com/auth/spreadsheets",
-            "https://www.googleapis.com/auth/drive",
-        ]
+        scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
         creds = Credentials.from_service_account_info(service_account_info, scopes=scopes)
         gc = gspread.authorize(creds)
         sh = gc.open_by_key(sheet_key)
         worksheet = sh.sheet1
         worksheet.append_row([timestamp, q, a], value_input_option="USER_ENTERED")
     except Exception as e:
-        st.warning(f"Google Sheetsへの保存に失敗しました: {e}")
+        st.warning(f"Google Sheets保存失敗: {e}")
 
-
-if "chat_log" not in st.session_state:
-    st.session_state.chat_log = []
-
+# --- チャット表示と処理 ---
 for q, a in st.session_state.chat_log:
     st.chat_message("user").write(q)
     if a:
