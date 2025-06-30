@@ -196,16 +196,12 @@ with st.expander("💡 よくある質問" if lang == "日本語" else "💡 FAQ
         q_col = "質問" if lang == "日本語" else "question"
         a_col = "回答" if lang == "日本語" else "answer"
         categories = sorted(set(cat.strip() for sublist in common_faq_df[cat_col].dropna().str.split(',') for cat in sublist))
-        for category in categories:
-            try:
-                with st.expander(category, expanded=False):
-                    selected_df = common_faq_df[common_faq_df[cat_col].str.contains(rf'(^|,\s*){re.escape(category)}(\s*,|$)', na=False)]
-                    for _, row in selected_df.iterrows():
-                        st.markdown(f"**Q. {row[q_col]}**")
-                        st.markdown(f"A. {row[a_col]}")
-                        st.markdown("---")
-            except Exception as e:
-                st.warning(f"カテゴリ '{category}' の表示中にエラーが発生しました: {e}")
+        selected_category = st.selectbox("カテゴリを選択" if lang == "日本語" else "Select Category", categories)
+        selected_df = common_faq_df[common_faq_df[cat_col].str.contains(rf'(^|,\s*){re.escape(selected_category)}(\s*,|$)', na=False)]
+        for _, row in selected_df.iterrows():
+            st.markdown(f"**Q. {row[q_col]}**")
+            st.markdown(f"A. {row[a_col]}")
+            st.markdown("---")
 
 
 # --- 類似質問検索 ---
