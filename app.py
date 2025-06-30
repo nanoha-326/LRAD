@@ -193,6 +193,24 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+st.markdown(
+    """
+    <style>
+    /* セレクトボックスのフォーカス時の枠線色を変更 */
+    div[data-testid="stSelectbox"] > div > div > div[tabindex="0"]:focus {
+        outline: 2px solid #0078D7 !important;  /* ここで色を指定（青色例） */
+        box-shadow: 0 0 0 2px #0078D7 !important;
+    }
+
+    /* マルチセレクトのフォーカス時の枠線色 */
+    div[data-testid="stMultiSelect"] > div > div > div[tabindex="0"]:focus {
+        outline: 2px solid #0078D7 !important;
+        box-shadow: 0 0 0 2px #0078D7 !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 # FAQファイル読み込みとカテゴリUIへの変更
 faq_common_path = "faq_common_jp.csv" if lang == "日本語" else "faq_common_en.csv"
