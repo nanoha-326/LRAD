@@ -159,20 +159,6 @@ def load_faq(path="faq_all.csv"):
 
 faq_df = load_faq()
 
-# --- よくある質問 ---
-faq_common_path = "faq_common_jp.csv" if lang == "日本語" else "faq_common_en.csv"
-
-@st.cache_data
-def load_common_faq(path):
-    try:
-        df = pd.read_csv(path)
-        return df
-    except Exception as e:
-        st.error(f"FAQ読み込み失敗: {e}")
-        return pd.DataFrame(columns=["質問", "回答"] if lang == "日本語" else ["question", "answer"])
-
-common_faq_df = load_common_faq(faq_common_path)
-
 image_base64 = ""
 try:
     with open("LRADimg.png", "rb") as img_file:
@@ -190,28 +176,32 @@ st.markdown(f"""
 
 st.caption(WELCOME_CAPTION)
 
+# FAQファイル読み込みとカテゴリUIへの変更
+faq_common_path = "faq_common_jp.csv" if lang == "日本語" else "faq_common_en.csv"
+
+@st.cache_data
+def load_common_faq(path):
+    try:
+        df = pd.read_csv(path)
+        return df
+    except Exception as e:
+        st.error(f"よくある質問ファイルの読み込みに失敗しました: {e}")
+        return pd.DataFrame(columns=["カテゴリ", "質問", "回答"] if lang == "日本語" else ["category", "question", "answer"])
+
+common_faq_df = load_common_faq(faq_common_path)
+
 with st.expander("💡 よくある質問" if lang == "日本語" else "💡 FAQ", expanded=False):
     if not common_faq_df.empty:
-        search_label = "🔎 キーワードで検索" if lang == "日本語" else "🔎 Search keyword"
-        no_match_msg = "一致するFAQが見つかりませんでした。" if lang == "日本語" else "No matching FAQ found."
-        search_keyword = st.text_input(search_label, "")
-        col_q = "質問" if lang == "日本語" else "question"
-        col_a = "回答" if lang == "日本語" else "answer"
-        if search_keyword:
-            df_filtered = common_faq_df[common_faq_df[col_q].str.contains(search_keyword, na=False) | common_faq_df[col_a].str.contains(search_keyword, na=False)]
-            if df_filtered.empty:
-                st.info(no_match_msg)
-            else:
-                for _, row in df_filtered.iterrows():
-                    st.markdown(f"**Q. {row[col_q]}**")
-                    st.markdown(f"A. {row[col_a]}")
-                    st.markdown("---")
-        else:
-            sample = common_faq_df.sample(n=min(3, len(common_faq_df)))
-            for _, row in sample.iterrows():
-                st.markdown(f"**Q. {row[col_q]}**")
-                st.markdown(f"A. {row[col_a]}")
-                st.markdown("---")
+        cat_col = "カテゴリ" if lang == "日本語" else "category"
+        q_col = "質問" if lang == "日本語" else "question"
+        a_col = "回答" if lang == "日本語" else "answer"
+        categories = sorted(set(cat for sublist in common_faq_df[cat_col].dropna().str.split(',') for cat in sublist))
+        selected_category = st.selectbox("カテゴリを選択" if lang == "日本語" else "Select Category", categories)
+        selected_df = common_faq_df[common_faq_df[cat_col].str.contains(selected_category, na=False)]
+        for _, row in selected_df.iterrows():
+            st.markdown(f"**Q. {row[q_col]}**")
+            st.markdown(f"A. {row[a_col]}")
+            st.markdown("---")
 
 # --- 類似質問検索 ---
 def find_top_similar(q, df, k=1):
