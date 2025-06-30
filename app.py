@@ -200,8 +200,8 @@ with st.expander("💡 よくある質問" if lang == "日本語" else "💡 FAQ
         all_label = "すべて" if lang == "日本語" else "All"
         categories = ["", all_label] + categories
 
-        select_placeholder = "カテゴリを選択してください" if lang == "日本語" else "Choose category"
-        selected_tag = st.selectbox("", categories, index=0, placeholder=select_placeholder)
+        select_placeholder = "カテゴリを選択してください" if lang == "日本語" else "Choose a category"
+        selected_tag = st.selectbox(label=" ", options=categories, index=0, format_func=lambda x: x if x else select_placeholder)
 
         if selected_tag:
             if selected_tag == all_label:
