@@ -203,8 +203,8 @@ with st.expander("💡 よくある質問" if lang == "日本語" else "💡 FAQ
         placeholder="カテゴリを選択してください" if lang == "日本語" else "Choose categories"
         )
 
-        if selected_tags:
-            filtered_df = common_faq_df[common_faq_df[cat_col].apply(lambda x: any(tag.strip() in x.split(',') for tag in selected_tags))]
+        if selected_categories:
+            filtered_df = common_faq_df[common_faq_df[cat_col].apply(lambda x: any(tag.strip() in x.split(',') for tag in selected_categories))]
             for _, row in filtered_df.iterrows():
                 st.markdown(f"**Q. {row[q_col]}**")
                 st.markdown(f"A. {row[a_col]}")
