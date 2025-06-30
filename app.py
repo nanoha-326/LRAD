@@ -204,7 +204,7 @@ with st.expander("💡 よくある質問" if lang == "日本語" else "💡 FAQ
                 st.markdown(f"A. {row[a_col]}")
                 st.markdown("---")
         else:
-            st.info("カテゴリを選択してください。" if lang == "日本語" else "Please select one or more categories.")
+            st.info("" if lang == "日本語" else "Please select one or more categories.")
 
 
 # --- 類似質問検索 ---
