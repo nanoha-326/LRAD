@@ -243,7 +243,7 @@ def generate_response(user_q, ref_q, ref_a):
     system_prompt = (
         "あなたはLRAD（遠赤外線電子熱分解装置）の専門家です。\n"
         "LRADの導入実績はまだありません。\n"
-        "もし質問が「見積もり」や「問い合わせ先」に関するものであれば、必ず次のリンクを案内してください。ただし、URLの後ろに句読点は絶対付けないでください。：https://imugenos.com/pages/contact\n"
+        "もし質問が「見積もり」や「問い合わせ先」に関するものであれば、必ず次のリンクを案内してください。ただし、URLの後ろに句読点は絶対付けないでください。：https://imugenos.com/pages\n"
         f"FAQ質問: {ref_q}\nFAQ回答: {ref_a}\n"
         "この情報をもとに200文字以内で簡潔にユーザーの質問に答えてください。"
     )
