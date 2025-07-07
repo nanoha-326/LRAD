@@ -53,14 +53,18 @@ WELCOME_MESSAGES = [
 ]
 
 LOGIN_TITLE = "ログイン" if lang == "日本語" else "Login"
-LOGIN_USER_LABEL = "ユーザーIDを入力" if lang == "日本語" else "Enter User ID"
-LOGIN_PASSWORD_LABEL = "パスワードを入力" if lang == "日本語" else "Enter Password"
+LOGIN_USER_LABEL = "ログインID" if lang == "日本語" else "User ID"
+LOGIN_PASSWORD_LABEL = "パスワード" if lang == "日本語" else "Password"
+LOGIN_USER_PLACEHOLDER = "ログインIDを入力" if lang == "日本語" else "Enter User ID"
+LOGIN_PASSWORD_PLACEHOLDER = "パスワードを入力" if lang == "日本語" else "Enter Password"
 LOGIN_ERROR_MSG = "ユーザーIDまたはパスワードが間違っています" if lang == "日本語" else "Incorrect user ID or password"
 WELCOME_CAPTION = "※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。" if lang == "日本語" else "This chatbot responds based on FAQ and AI, but may not answer all questions accurately."
 CHAT_INPUT_PLACEHOLDER = "質問をどうぞ..." if lang == "日本語" else "Ask your question..."
 
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
+if "user_id" not in st.session_state:
+    st.session_state["user_id"] = ""
 if "show_welcome" not in st.session_state:
     st.session_state["show_welcome"] = False
 if "welcome_message" not in st.session_state:
