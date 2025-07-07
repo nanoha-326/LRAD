@@ -13,6 +13,13 @@ import time
 
 st.set_page_config(page_title="LRADチャット", layout="centered")
 
+# --- 認証情報（IDとパスワードの辞書） ---
+USER_CREDENTIALS = {
+    "Imugenos": "mypassword1",
+    "Acorp": "mypassword2",
+    "Bcorp": "mypassword3",
+}
+
 # Step 1: 言語設定とサイドバーUI
 lang = st.sidebar.selectbox("言語を選択 / Select Language", ["日本語", "English"], index=0)
 
@@ -50,7 +57,6 @@ LOGIN_PASSWORD_LABEL = "パスワードを入力" if lang == "日本語" else "E
 LOGIN_ERROR_MSG = "パスワードが間違っています" if lang == "日本語" else "Incorrect password"
 WELCOME_CAPTION = "※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。" if lang == "日本語" else "This chatbot responds based on FAQ and AI, but may not answer all questions accurately."
 CHAT_INPUT_PLACEHOLDER = "質問をどうぞ..." if lang == "日本語" else "Ask your question..."
-CORRECT_PASSWORD = "mypassword"
 
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
@@ -67,11 +73,13 @@ def password_check():
     if not st.session_state["authenticated"]:
         with st.form("login_form"):
             st.title(LOGIN_TITLE)
+            user_id = st.text_input("ユーザーIDを入力" if lang == "日本語" else "Enter User ID")
             password = st.text_input(LOGIN_PASSWORD_LABEL, type="password")
             submitted = st.form_submit_button(LOGIN_TITLE)
             if submitted:
-                if password == CORRECT_PASSWORD:
+                if USER_CREDENTIALS.get(user_id) == password:
                     st.session_state["authenticated"] = True
+                    st.session_state["user_id"] = user_id
                     st.session_state["show_welcome"] = True
                     st.session_state["welcome_message"] = random.choice(WELCOME_MESSAGES)
                     st.session_state["fade_out"] = False
