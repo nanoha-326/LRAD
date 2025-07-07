@@ -53,8 +53,9 @@ WELCOME_MESSAGES = [
 ]
 
 LOGIN_TITLE = "ログイン" if lang == "日本語" else "Login"
+LOGIN_USER_LABEL = "ユーザーIDを入力" if lang == "日本語" else "Enter User ID"
 LOGIN_PASSWORD_LABEL = "パスワードを入力" if lang == "日本語" else "Enter Password"
-LOGIN_ERROR_MSG = "パスワードが間違っています" if lang == "日本語" else "Incorrect password"
+LOGIN_ERROR_MSG = "ユーザーIDまたはパスワードが間違っています" if lang == "日本語" else "Incorrect user ID or password"
 WELCOME_CAPTION = "※このチャットボットはFAQとAIをもとに応答しますが、すべての質問に正確に回答できるとは限りません。" if lang == "日本語" else "This chatbot responds based on FAQ and AI, but may not answer all questions accurately."
 CHAT_INPUT_PLACEHOLDER = "質問をどうぞ..." if lang == "日本語" else "Ask your question..."
 
@@ -68,13 +69,13 @@ if "fade_out" not in st.session_state:
     st.session_state["fade_out"] = False
 if "chat_log" not in st.session_state:
     st.session_state["chat_log"] = []
-
+    
 def password_check():
     if not st.session_state["authenticated"]:
         with st.form("login_form"):
             st.title(LOGIN_TITLE)
-            user_id = st.text_input("ユーザーIDを入力" if lang == "日本語" else "Enter User ID")
-            password = st.text_input(LOGIN_PASSWORD_LABEL, type="password")
+            user_id = st.text_input(LOGIN_USER_LABEL, key="login_user", placeholder=LOGIN_USER_LABEL)
+            password = st.text_input(LOGIN_PASSWORD_LABEL, type="password", key="login_pass", placeholder=LOGIN_PASSWORD_LABEL)
             submitted = st.form_submit_button(LOGIN_TITLE)
             if submitted:
                 if USER_CREDENTIALS.get(user_id) == password:
