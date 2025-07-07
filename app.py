@@ -289,14 +289,25 @@ def append_to_gsheet(q, a):
         service_account_info = st.secrets["GoogleSheets"]["service_account_info"]
         if isinstance(service_account_info, str):
             service_account_info = json.loads(service_account_info)
-        scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+        scopes = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive",
+        ]
         creds = Credentials.from_service_account_info(service_account_info, scopes=scopes)
         gc = gspread.authorize(creds)
         sh = gc.open_by_key(sheet_key)
-        worksheet = sh.sheet1
+
+        user_id = st.session_state.get("user_id", "default")
+        try:
+            worksheet = sh.worksheet(user_id)  # 既存シート取得
+        except gspread.exceptions.WorksheetNotFound:
+            worksheet = sh.add_worksheet(title=user_id, rows="1000", cols="3")  # なければ作成
+            worksheet.append_row(["timestamp", "question", "answer"])
+
         worksheet.append_row([timestamp, q, a], value_input_option="USER_ENTERED")
+
     except Exception as e:
-        st.warning(f"Google Sheets保存失敗: {e}")
+        st.warning(f"Google Sheetsへの保存に失敗しました: {e}")
 
 # --- チャット表示と処理 ---
 for q, a in st.session_state.chat_log:
