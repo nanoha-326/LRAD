@@ -73,6 +73,8 @@ if "fade_out" not in st.session_state:
     st.session_state["fade_out"] = False
 if "chat_log" not in st.session_state:
     st.session_state["chat_log"] = []
+if "show_login_success" not in st.session_state:
+    st.session_state["show_login_success"] = False
     
 def password_check():
     if not st.session_state["authenticated"]:
@@ -88,6 +90,7 @@ def password_check():
                     st.session_state["show_welcome"] = True
                     st.session_state["welcome_message"] = random.choice(WELCOME_MESSAGES)
                     st.session_state["fade_out"] = False
+                    st.session_state["show_login_success"] = True
                     st.experimental_rerun()
                 else:
                     st.error(LOGIN_ERROR_MSG)
@@ -95,6 +98,13 @@ def password_check():
 
 password_check()
 
+# --- ログイン成功時メッセージ表示 ---
+if st.session_state.get("show_login_success", False):
+    st.success("✅ ログイン完了しました！")
+    time.sleep(1.5)
+    st.session_state["show_login_success"] = False
+    st.experimental_rerun()
+    
 def show_welcome_screen():
     st.markdown(
         f"""
