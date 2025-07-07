@@ -73,7 +73,6 @@ if "chat_log" not in st.session_state:
 def password_check():
     if not st.session_state["authenticated"]:
         with st.form("login_form"):
-            st.title(LOGIN_TITLE)
             user_id = st.text_input(LOGIN_USER_LABEL, key="login_user", placeholder=LOGIN_USER_LABEL)
             password = st.text_input(LOGIN_PASSWORD_LABEL, type="password", key="login_pass", placeholder=LOGIN_PASSWORD_LABEL)
             submitted = st.form_submit_button(LOGIN_TITLE)
